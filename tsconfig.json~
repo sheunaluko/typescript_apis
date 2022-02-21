@@ -1,9 +1,0 @@
-{
-    "compilerOptions": {
-        "normalTypeScriptOptions": "here"
-    },
-    "typedocOptions": {
-        "entryPoints": ["src/index.ts"],
-        "out": "docs"
-    }
-}
