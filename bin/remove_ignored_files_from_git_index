@@ -1,5 +1,7 @@
 git rm -r --cached . 
 git add .
+echo "Updated git index..."
+./bin/sync "Removed ignored files"
 
 
 
