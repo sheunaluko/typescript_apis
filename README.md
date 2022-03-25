@@ -9,3 +9,6 @@ A documented and clean collection of typescript code for composability and re-us
 
 ### Sync git repository
 ``` ./bin/sync COMMIT_MSG ``` 
+
+### About 
+This repository is inspired by functional programming patterns, and uses the Ramda javascript library throughout. Functional programming is very fun! 
