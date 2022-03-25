@@ -1,14 +1,14 @@
 import * as repl from "repl" ; 
-import * as node_index from './index';
-
+import * as node from './index';
+import * as common from '../common/index';
 declare var global : any ; 
 
-Object.keys(node_index).forEach((x : any) => {
-    //@ts-ignore    
-    global[x] = node_index[x] ;
-});
+global.node = node ;
+global.common = common;
+global.R  = common.R; 
 
 const replServer = repl.start({
   prompt: '@> ',
 });
+
 

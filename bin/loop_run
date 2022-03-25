@@ -1,0 +1,6 @@
+echo "Looping the following: $1" 
+while true 
+do 
+  $1
+  echo "Looping :)"
+done 

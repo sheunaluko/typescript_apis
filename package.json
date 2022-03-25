@@ -24,8 +24,10 @@
   },
   "homepage": "https://github.com/sheunaluko/typescript_apis#readme",
   "dependencies": {
+    "@types/puppeteer": "^5.4.5",
     "@types/ramda": "^0.27.64",
     "node-fetch": "^3.2.0",
+    "puppeteer": "^13.5.0",
     "ramda": "^0.28.0",
     "typedoc": "^0.22.11"
   },
