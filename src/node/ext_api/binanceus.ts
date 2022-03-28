@@ -32,8 +32,8 @@ export async function get_user_data(params: UserDataParams) {
  * @param params Dictionary containing the api key and api secret 
  */
 export async function get_user_balances(params: UserDataParams) {
-    let balances = (await get_user_data(params) as any ).balances 
-    let non_zero = ((x:any)=> Number(x.free) > 0)
+    let balances = (await get_user_data(params) as any ).balances  ; 
+    let non_zero = ((x:any)=> Number(x.free) > 0) ; 
     return balances.filter(non_zero).map( (x:any)=> ({symbol : x.asset,
 						      amount : (Number(x.free) + Number(x.locked))
 						     })) 

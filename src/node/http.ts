@@ -34,7 +34,7 @@ export async function get_json_with_headers(url : string, headers: any) {
 	log(`Requested url ${url} with headers ${JSON.stringify(headers)}`)
 	//console.log(resp) 
     }
-    return await(resp.json()) 
+    return (await resp.json() ) 
 }
 
 
