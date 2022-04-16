@@ -1,5 +1,5 @@
 # Typescript APIs
-A documented and clean collection of typescript code for composability and re-use.
+A documented and clean collection of typescript code for composability and re-use :)
 
 ### Start node repl
 ``` ./bin/nrepl ```
