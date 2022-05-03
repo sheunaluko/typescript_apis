@@ -36,7 +36,7 @@ export function first(x : any[]) { return x[0] }
 
 /**
  * Given a list of objects, extract property 'prop' from each object 
- * to create a new listn
+ * to create a new list
  * @param prop The property to extract
  * @param list The list to act upon 
  */
