@@ -1,3 +1,7 @@
 #note -- this file is meant to be run from the root directory.
-#it starts an node repl session 
-node --experimental-specifier-resolution=node --loader ts-node/esm src/node/start_repl.ts
+#it starts an node repl session
+
+#see https://github.com/webpack/webpack/issues/14532 to understand flags.
+#I was getting this error with the ethers library and adding legacy provider resolved it
+
+node --openssl-legacy-provider --experimental-specifier-resolution=node --loader ts-node/esm src/node/start_repl.ts

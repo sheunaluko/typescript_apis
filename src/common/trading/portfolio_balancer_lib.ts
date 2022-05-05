@@ -12,14 +12,14 @@
 
 import {Logger} from "../util/logger"
 
-type MarketResult = {
+export type MarketResult = {
     error : bool,
     info : any 
 } 
 
-type MarketTradeType = "BUY" | "SELL" , 
+export type MarketTradeType = "BUY" | "SELL" , 
 
-type BalanceParams = {
+export type BalanceParams = {
     logger_id : string,
     target_ratio : number, 
     target_precision : number; 
@@ -37,7 +37,7 @@ type BalanceParams = {
  * Creates a PortfolioBalancer object using the supplied parameters. 
  * See class methods. 
  */
-class PortfolioBalancer {
+export class PortfolioBalancer {
 
     var Params ;
     var Logger ; 
@@ -127,3 +127,27 @@ class PortfolioBalancer {
 }
     
 
+export type EVMParams = {
+    wallet_address : string, 
+}
+
+
+
+
+/**
+ * Creates an EVM balancer object 
+ */
+export class EVMBalancer extends PortfolioBalancer {
+
+    constructor(params : EVMParams ) {
+
+	//build the constructor arguments for the super class
+
+	//and instantiate it :) 
+	super(superArgs) ; 
+	
+	
+    } 
+
+    
+} 

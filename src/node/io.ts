@@ -16,10 +16,23 @@ export function write_file(fname : string,s : string) { fs.writeFileSync(fname,s
 export function read_file(fname : string)  : string { return fs.readFileSync(fname , 'utf8') }
 
 /**
+ * Read a text file from disk (same as read_file) 
+ * 
+ */
+export function read_text(fname : string)  : string { return fs.readFileSync(fname , 'utf8') }
+
+/**
  * Read a json file from disk and return the json object
  * 
  */
 export function read_json(fname : string)  { return JSON.parse(read_file(fname)) } 
+
+
+/**
+ * Reads a directory and returns file names
+ * 
+ */
+export function read_dir(fname : string)  {  return fs.readdirSync(fname) } 
 
 /**
  * Appends file extension to fname if not already there. 
@@ -34,11 +47,31 @@ export function ensure_extension(fname : string, ext : string)  {
 } 
 
 /**
- * Write a json file to disk from fname and json object    
+ * Makes sure a directory exists and if not creates it. 
+ * 
+ */
+export function ensure_dir(dir : string)  { if (!fs.existsSync(dir)){ fs.mkdirSync(dir, { recursive: true });  } } 
+
+/**
+ * Write a json file to disk 
  * 
  */
 export function write_json(fname : string, o : any)  {
     return write_file(ensure_extension(fname,"json"), JSON.stringify(o))
+} 
+
+
+export type WriteFileOps = {
+    path : string,
+    data : string,
+    append : boolean , 
+} 
+/**
+ * Write a text file to disk 
+ */
+export function write_text(ops : WriteFileOps)  {
+    let { path, data, append } = ops ; 
+    return (append ? fs.appendFileSync(path, data) : write_file(path, data) ) ; 
 } 
 
 
@@ -60,5 +93,6 @@ export function read_nonhidden_subfiles(dname : string) {
 	(y:string) => path.join(dname,y)
     )
 } 
+
 
 export {fs, path}  ; 
