@@ -70,8 +70,10 @@ export type WriteFileOps = {
  * Write a text file to disk 
  */
 export function write_text(ops : WriteFileOps)  {
-    let { path, data, append } = ops ; 
-    return (append ? fs.appendFileSync(path, data) : write_file(path, data) ) ; 
+
+    let { path : fpath, data, append } = ops ;
+    ensure_dir( path.dirname(fpath) )  ;     
+    return (append ? fs.appendFileSync(fpath, data) : write_file(fpath, data) ) ; 
 } 
 
 

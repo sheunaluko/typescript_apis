@@ -24,13 +24,13 @@ function check_reqs() {
  * The latter is created if it does not exist. 
  * @param {object} metadata - Optional metadata (name, num) 
  */
-async function generate_random_json_wallet(metadata :  any) {
+async function generate_random_json_wallet(metadata :  any) : Promise<WALLET | undefined> {
 
     check_reqs() ;
     
     let { name , num }  = metadata ; 
 
-    let wid = uuidv4() ; 
+    let wid = uuidv4() ;
     
     log(`[${wid}] Generating wallet...`)
     let wallet = ethers.Wallet.createRandom() ;
@@ -57,7 +57,7 @@ async function generate_random_json_wallet(metadata :  any) {
 
     //write a metadata file
     if ( num == undefined ) { num = -1 } 
-    let _metadata = { name : ( name || "unknown" ) , number : num } 
+    let _metadata = { name : ( name || wid ) , number : num } 
     let meta_fname = io.path.join(wallet_base, "metadata.json")
     log(`[${wid}] Writing wallet metadata`)                
     await io.write_text( { path : meta_fname, data : JSON.stringify(_metadata) , append :false })
@@ -96,7 +96,13 @@ async function load_wallets() {
     return LOADED_WALLETS 
 }
 
-var LOADED_WALLETS : any  = null ;
+export type WALLET = {
+    wallet : ethers.Wallet ,
+    metadata :{ name : string, number : number } ,
+    dloc : string, 
+} 
+
+var LOADED_WALLETS : (WALLET|undefined)[]  = [] ;
 
 /**
  * Returns an array of all the loaded wallets 
