@@ -109,7 +109,7 @@ var LOADED_WALLETS : (WALLET|undefined)[]  = [] ;
  */
 async function get_loaded_wallets() {
     check_reqs() ;    
-    if (LOADED_WALLETS) {
+    if (LOADED_WALLETS.length > 0 ) {
 	return LOADED_WALLETS
     } else {
 	LOADED_WALLETS = await load_wallets() 
@@ -129,14 +129,14 @@ async function generate_numbered_wallets(n : number) {
     let wallets = await get_loaded_wallets() ;
     let used_numbers = wallets.map( (w:any)=> w.metadata.number ) ;
 
-    let new_wallets = [] 
+    let new_wallets : WALLET[] = [] 
     for (var i=0; i< n; i++) {
 	if (used_numbers.indexOf(i) > -1 ) {
 	    log(`Skipping number: ${i}`)
 	} else {
 	    let metadata = { name : null , num : i } 
-	    let wallet_info = generate_random_json_wallet(metadata)
-	    new_wallets.push(wallet_info) 
+	    let wallet_info = await generate_random_json_wallet(metadata)
+	    new_wallets.push(wallet_info as WALLET) 
 	} 
     }
 
@@ -144,6 +144,20 @@ async function generate_numbered_wallets(n : number) {
     log("Finished generating new wallets.. adding to loaded.")
     resolved_new_wallets.map( (w:any) => LOADED_WALLETS.push(w) )
     log("Done")     
+} 
+
+
+/**
+ * Searches for a local wallet by its public evm address
+ * @param {address} s - The address
+ */
+export async function get_wallet_by_address(a : string) {
+    check_reqs() ;    
+    let wallets = await get_loaded_wallets() ;
+    return wallets.filter( (w:(WALLET|undefined)) => {
+	let resolved_wallet = w as WALLET ;
+	return (resolved_wallet.wallet.address == a ) 
+    })[0]
 } 
 
 

@@ -24,36 +24,6 @@ import {ethers} from 'ethers' ;
 import * as web3 from '../../common/web3/index' ;
 import * as evmb from '../../common/web3/evm_balancers' ;
 
-type V2BalancerArgs = {
-    wallet : wallets.WALLET,
-    provider : ethers.providers.JsonRpcProvider,
-    router_address : string,
-    router_abi :  string[],
-    balancer_params : pbl.BalanceParams
-} 
-
-/**
- * Creates an EVM Balancer Instance 
- * 
- */
-export function get_uni_v2_balancer(ops : V2BalancerArgs) {
-
-    let {
-	wallet, provider, router_address, router_abi, balancer_params 
-    } = ops ; 
-
-    let amm_params = {
-	evm_wallet_instance : wallet.wallet,  
-	provider : provider ,
-	router_address,
-	router_abi 
-    } ;
-
-    return new evmb.UniV2Balancer( R.mergeDeepLeft(amm_params, balancer_params) ) ;
-    
-} 
-
-
 export {
     pbl 
 } 
