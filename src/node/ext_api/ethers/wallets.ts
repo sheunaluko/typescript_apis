@@ -3,7 +3,7 @@ import { ethers } from 'ethers'; // https://docs.ethers.io/v4/getting-started.ht
 import { v4 as uuidv4 } from 'uuid';
 import * as io from "../../io"
 import {get_logger}  from "../../../common/logger"
-
+import {SmartWallet, SmartWalletOps, TxType} from "../../../common/web3/smart_wallet"  ; 
 
 let dpw  = (process.env["EVM_WALLETS_PASSW"] as string) 
 let wloc = (process.env["EVM_WALLETS_LOC"] as string)
@@ -24,21 +24,13 @@ function check_reqs() {
  * The latter is created if it does not exist. 
  * @param {object} metadata - Optional metadata (name, num) 
  */
-async function generate_random_json_wallet(metadata :  any) : Promise<WALLET | undefined> {
+async function generate_random_json_wallet(metadata :  any) {
 
     check_reqs() ;
-    
-    let { name , num }  = metadata ; 
-
-    let wid = uuidv4() ;
-    
-    log(`[${wid}] Generating wallet...`)
+    let { num }  = metadata ; 
     let wallet = ethers.Wallet.createRandom() ;
-    if (! dpw ) { log("Please set EVM_WALLETS_PASSW in the env, unable to encrypt wallet!") ; return }
-
-    if (!wloc)  { log("Please set EVM_WALLETS_LOC in the env, unable to encrypt wallet!") ; return }
-
-
+    let wid = wallet.address ;
+    log(`Generating wallet...${wid}`)    
     log(`[${wid}] Encrypting wallet...`)
     let options = {
 	scrypt: {
@@ -57,15 +49,13 @@ async function generate_random_json_wallet(metadata :  any) : Promise<WALLET | u
 
     //write a metadata file
     if ( num == undefined ) { num = -1 } 
-    let _metadata = { name : ( name || wid ) , number : num } 
+    let _metadata = { address : wid , number : num } 
     let meta_fname = io.path.join(wallet_base, "metadata.json")
     log(`[${wid}] Writing wallet metadata`)                
     await io.write_text( { path : meta_fname, data : JSON.stringify(_metadata) , append :false })
     log(`[${wid}] Done`)
 
-    return {
-	wallet , metadata : _metadata, dloc : wallet_base 
-    } 
+    return wallet  ; 
 }
 
 function wallet_subdirectories() {
@@ -77,11 +67,18 @@ async function parse_wallet(dloc : string) {
     let jsonf = io.path.join(dloc, "wallet.json") ; 
     let metadata = JSON.parse( io.read_text( io.path.join(dloc, "metadata.json") ) )
     log(`Decrypting wallet ${dloc}`)
+
+    /* 
+       create the wallet 
+     */
     let wallet =  await ethers.Wallet.fromEncryptedJson( io.read_text(jsonf) , dpw )
     log(`Done Decrypting wallet ${dloc}`)    
-    return {
-	wallet , metadata , dloc 
-    } 
+    return {wallet,metadata} ; 
+} 
+
+type ParsedWallet = {
+    wallet : ethers.Wallet;
+    metadata : any 
 } 
 
 async function load_wallets() {
@@ -96,13 +93,7 @@ async function load_wallets() {
     return LOADED_WALLETS 
 }
 
-export type WALLET = {
-    wallet : ethers.Wallet ,
-    metadata :{ name : string, number : number } ,
-    dloc : string, 
-} 
-
-var LOADED_WALLETS : (WALLET|undefined)[]  = [] ;
+var LOADED_WALLETS : ParsedWallet[]  = [] ;
 
 /**
  * Returns an array of all the loaded wallets 
@@ -129,14 +120,14 @@ async function generate_numbered_wallets(n : number) {
     let wallets = await get_loaded_wallets() ;
     let used_numbers = wallets.map( (w:any)=> w.metadata.number ) ;
 
-    let new_wallets : WALLET[] = [] 
+    let new_wallets : ethers.Wallet[] = [] 
     for (var i=0; i< n; i++) {
 	if (used_numbers.indexOf(i) > -1 ) {
 	    log(`Skipping number: ${i}`)
 	} else {
-	    let metadata = { name : null , num : i } 
-	    let wallet_info = await generate_random_json_wallet(metadata)
-	    new_wallets.push(wallet_info as WALLET) 
+	    let metadata = { num : i } ; 
+	    let wallet = await generate_random_json_wallet(metadata)
+	    new_wallets.push(wallet)
 	} 
     }
 
@@ -147,17 +138,36 @@ async function generate_numbered_wallets(n : number) {
 } 
 
 
+
 /**
- * Searches for a local wallet by its public evm address
- * @param {address} s - The address
+ * Searches for and parses a local wallet by its public evm address
+ * @param {string} s - The address
  */
 export async function get_wallet_by_address(a : string) {
-    check_reqs() ;    
-    let wallets = await get_loaded_wallets() ;
-    return wallets.filter( (w:(WALLET|undefined)) => {
-	let resolved_wallet = w as WALLET ;
-	return (resolved_wallet.wallet.address == a ) 
-    })[0]
+    check_reqs() ;
+    let w_dir = io.path.join(wloc,a)  ;
+    return (await parse_wallet(w_dir)).wallet  ;
+}
+
+
+var wallet_cache : any = { }   ; 
+
+
+/**
+ * Searches for and parses a local wallet by its public evm address
+ * and then creates a SmartWallet instance connected to the specified 
+ * Provider
+ * @param {string} addr - The address
+ * @param {ethers.providers.JsonRpcProvider} p - Provider
+ */
+export async function get_smart_wallet_by_address(addr : string, p : ethers.providers.JsonRpcProvider , tx_type : TxType) {
+    check_reqs() ;
+    let w = ( wallet_cache[addr] || await get_wallet_by_address(addr) ) ;
+    wallet_cache[addr]  = w ; 
+    let ops = { privateKey : w.privateKey , provider : p , tx_type}  ; 
+    let sw = new SmartWallet(ops) ;
+    await sw.init() ;
+    return sw; 
 } 
 
 

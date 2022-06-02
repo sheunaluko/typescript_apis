@@ -4,7 +4,7 @@ import * as evm_balancers from "./evm_balancers"
 import * as abis from "./abis/index" 
 import * as info from "./info"
 import * as utils from "./utils" 
-
+import * as smart_wallet from "./smart_wallet" 
 
 export {
     ethers ,
@@ -12,7 +12,8 @@ export {
     info,
     evm_balancers ,
     abis,
-    utils, 
+    utils,
+    smart_wallet , 
 } 
 
 

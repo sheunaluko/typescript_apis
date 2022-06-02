@@ -4,10 +4,20 @@ import UNISWAP from "@uniswap/sdk" ;
 import * as abis from  "./abis/index" ;
 import * as tmgr from "./transaction_manager_lib" ; 
 import {toEth} from "./utils" 
+import {SmartWallet, TxType} from "./smart_wallet" ; 
+
+
+export type GasOps = {
+    low : ethers.BigNumber,
+    medium : ethers.BigNumber,
+    high : ethers.BigNumber ,
+    usd_price : number, 
+} 
+
+export type GasEstimator = () => Promise<GasOps | null> ;
 
 export interface EVMParams extends pbl.BalanceParams {
-    evm_wallet_instance : ethers.Wallet,
-    provider : ethers.providers.JsonRpcProvider , 
+    smartWallet : SmartWallet  , 
 }
 
 
@@ -15,22 +25,12 @@ export interface EVMParams extends pbl.BalanceParams {
  * Creates an EVM balancer object 
  */
 export abstract class EVMBalancer extends pbl.PortfolioBalancer {
-    wallet : ethers.Wallet; 
-    provider : ethers.providers.JsonRpcProvider ; 
+    wallet : SmartWallet  ;
     
     constructor(params : EVMParams ) {
-	//build the constructor arguments for the super class
-	//and instantiate it :) 
-	super(params) ;
-	this.wallet = params.evm_wallet_instance ;
-	this.provider = params.provider ;
+	super(params) ; 
+	this.wallet = params.smartWallet ;  
     }
-
-    async connect_to_provider() {
-	this.log("Attempting to connect wallet to provider") ; 
-	this.wallet = await this.wallet.connect(this.provider)  ;
-	this.log("Done") ; 
-    } 
 }
 
 export type Token = {
@@ -41,14 +41,7 @@ export type Token = {
 
 }  ;
 
-export type GasOps = {
-    low : ethers.BigNumber,
-    medium : ethers.BigNumber,
-    high : ethers.BigNumber ,
-    usd_price : number, 
-} 
 
-export type GasEstimator = () => Promise<GasOps | null> ; 
 
 export interface AMMParams extends EVMParams {
     router_address : string,
@@ -57,7 +50,6 @@ export interface AMMParams extends EVMParams {
     token0? : Token , 
     token1? : Token ,
     token0_is_base_asset : boolean ,
-    gas_estimator : GasEstimator ,
     max_slippage_percent : number  , 
 }
 
@@ -79,8 +71,10 @@ export class UniV2Balancer extends EVMBalancer {
     token1 : UNISWAP.Token | null ;
     token0Contract : ethers.Contract | null ;
     token1Contract : ethers.Contract | null ;
-    tokens : TokensInfo | null ; 
-
+    tokens : TokensInfo | null ;
+    maxNumAsString : string ; 
+    gasLimitMultiple : number  ; 
+    
     
     constructor(ammParams : AMMParams) {
 	super(ammParams) ;
@@ -91,7 +85,9 @@ export class UniV2Balancer extends EVMBalancer {
 	this.token1 = null;
 	this.token0Contract = null;
 	this.token1Contract = null;
-	this.tokens = null ; 
+	this.tokens = null ;
+	this.maxNumAsString = "115792089237316195423570985008687907853269984665640564039457584007913129639935" ;
+	this.gasLimitMultiple = 1.2; 
     }
 
     async init() {
@@ -103,10 +99,8 @@ export class UniV2Balancer extends EVMBalancer {
 	      token0 ,
 	      token1 ,
 	      token0_is_base_asset, 	      
-	      provider } = this.params ;
+	} = this.params ;
 	let v2abi = abis.uni_v2 ;
-	// - 
-	await this.connect_to_provider() ;
 
 	this.routerContract = new ethers.Contract(router_address,v2abi.router , this.wallet) ;
 	this.poolContract = new ethers.Contract(pool_address, v2abi.pool , this.wallet) ;	
@@ -136,8 +130,8 @@ export class UniV2Balancer extends EVMBalancer {
 	    quote_token : ( token0_is_base_asset ? this.token1 : this.token0 ) ,
 	    base_token_contract : ( token0_is_base_asset ? this.token0Contract : this.token1Contract ) ,
 	    quote_token_contract : ( token0_is_base_asset ? this.token1Contract : this.token0Contract ) ,
-	    base_token_decimals : ( token0_is_base_asset ? this.token0.decimals : this.token1.decimals ) ,
-	    quote_token_decimals : ( token0_is_base_asset ? this.token1.decimals : this.token0.decimals ) , 	    
+	    base_token_decimals : ( token0_is_base_asset ? (this.token0 as UNISWAP.Token).decimals : (this.token1 as UNISWAP.Token).decimals ) ,
+	    quote_token_decimals : ( token0_is_base_asset ? (this.token1 as UNISWAP.Token).decimals : (this.token0 as UNISWAP.Token).decimals ) , 	    
 
 	} 
 	
@@ -192,9 +186,8 @@ export class UniV2Balancer extends EVMBalancer {
 
 	let wallet = (this.wallet as ethers.Wallet) ;
 	let addr = (wallet.address as string) ;
-	let gasInfo = (await this.params.gas_estimator()  as GasOps); 
+
 	let overrides = {
-	    gasPrice : gasInfo.medium , 
 	    nonce  ,
 	    gasLimit : ethers.utils.parseUnits("120000",'gwei'), 
 	}
@@ -238,9 +231,7 @@ export class UniV2Balancer extends EVMBalancer {
 	    .populateTransaction
 	    .swapExactTokensForTokens(amountIn, minAmountOut, path, addr , (Date.now() + 1000 * 60*10) , overrides  ) ;
 	
-	let gas_info = await this.get_tx_gas_info(tx,gasInfo.usd_price) ; 
-
-	return {tx , output_info, gas_info , gas_estimate}
+	return {tx , output_info,  gas_estimate}
     }
 
     /* 
@@ -264,28 +255,86 @@ export class UniV2Balancer extends EVMBalancer {
 
     async get_base_token_approval() {
 	let tokens = (this.tokens as TokensInfo)	
-	return await this.get_token_approval( tokens.base_token_contract as ethers.Contract , tokens.base_token_decimals)
+	return await this.get_token_approval( tokens.base_token_contract as ethers.Contract , tokens.base_token_decimals as number)
     }
 
     async get_quote_token_approval() {
 	let tokens = (this.tokens as TokensInfo)
-	return await this.get_token_approval( tokens.quote_token_contract as ethers.Contract , tokens.quote_token_decimals)
+	return await this.get_token_approval( tokens.quote_token_contract as ethers.Contract , tokens.quote_token_decimals as number )
     }
 
     async get_token_approval(c : ethers.Contract, decimals : number) {
-	return Number(ethers.utils.formatUnits(c.allowance(this.wallet.address , (this.routerContract as ethers.Contract).address), decimals))
+	let allowance = await c.allowance(this.wallet.address , (this.routerContract as ethers.Contract).address) ; 
+	return allowance 
+    }
+
+    async base_token_approved() {
+	return ( (await this.get_base_token_approval()).toString() == this.maxNumAsString ) 
     } 
 
+    async quote_token_approved() {
+	return ( (await this.get_quote_token_approval()).toString() == this.maxNumAsString ) 
+    } 
+
+    async generate_approve_token_tx(base_or_quote : string) {
+	let {
+	    wallet,addr,overrides,
+	    base_token_contract , quote_token_contract, 
+	    router_contract, 
+	}  = await this.get_base_tx_ops() ;
+
+	let token_contract = (base_or_quote == "BASE") ? base_token_contract : quote_token_contract  ; 
+
+	overrides.gasLimit = ethers.utils.parseUnits("100000",'gwei') ;
+
+	let maxBn = ethers.BigNumber.from(this.maxNumAsString)
+	let gas_estimate = await token_contract.estimateGas.approve(router_contract.address, maxBn, overrides) ;
+
+ 	let new_gas = Math.ceil(this.gasLimitMultiple*Number(gas_estimate.toString())) ;
+	let new_gas_BN  = ethers.BigNumber.from(String(new_gas)) ; 
+	
+	overrides.gasLimit = new_gas_BN ; 
+	let tx = await token_contract.populateTransaction.approve(router_contract.address, maxBn , overrides) ;
+	return {tx , gas_estimate , new_gas , new_gas_BN }
+    }
+
+
+    async get_base_tx_ops() {
+	let wallet = (this.wallet as ethers.Wallet) ;
+	let addr = (wallet.address as string) ;
+	let overrides = await this.wallet.get_gas_overrides() 
+
+	let {
+	    base_token,
+	    quote_token,
+	    base_token_contract,
+	    quote_token_contract
+	} = (this.tokens as TokensInfo) ;
+	
+	return {
+	    wallet,
+	    addr,
+	    from : addr, 
+	    overrides ,
+	    base_token : base_token as UNISWAP.Token,
+	    quote_token : quote_token as UNISWAP.Token,
+	    base_token_contract : base_token_contract as ethers.Contract,
+	    quote_token_contract : quote_token_contract as ethers.Contract,
+	    router_contract : this.routerContract as ethers.Contract,
+	    
+	} 
+    } 
     
-    async get_tx_gas_info(tx : any , usd_price : number ) {
+    get_tx_gas_info(tx : any , usd_price : number ) {
 	let {gasPrice, gasLimit } = tx ;
-	let max_total_gas = gasPrice * gasLimit ;
+	let max_total_gas = Number( ethers.utils.formatEther(gasPrice.mul(gasLimit)))  ;
 	let l1_price_usd = usd_price ; 
 	let max_total_gas_usd = max_total_gas*l1_price_usd ; 
 	return {
 	    max_total_gas ,
 	    max_total_gas_usd,
-	    l1_price_usd , 
+	    l1_price_usd ,
+	    gasPrice, gasLimit, 
 	} 
     } 
 

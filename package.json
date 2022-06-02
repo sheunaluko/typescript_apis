@@ -25,7 +25,7 @@
   "homepage": "https://github.com/sheunaluko/typescript_apis#readme",
   "dependencies": {
     "@types/puppeteer": "^5.4.5",
-    "@types/ramda": "^0.27.64",
+    "@types/ramda": "^0.28.12",
     "@types/uuid": "^8.3.4",
     "@uniswap/sdk": "^3.0.3",
     "@uniswap/sdk-core": "^3.0.1",

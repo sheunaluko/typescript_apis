@@ -15,6 +15,11 @@ export interface LoggerOps {
 export function get_logger(ops : LoggerOps) {
     let { id  } = ops ;
     return function(t : any) {
-	console.log(`[${id}]:: ${t}`)
+	if (t.toString() == '[object Object]' ) {
+	    console.log(`[${id}]:: > `)
+	    console.log(t) 
+	} else { 
+	    console.log(`[${id}]:: ${t}`)
+	} 
     }
 } 
