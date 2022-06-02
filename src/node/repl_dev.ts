@@ -11,10 +11,10 @@ import {get_smart_wallet_by_address,
 }  from '../node/ext_api/ethers/wallets' ;
 import {MaxGasType,
 	TxType , 
-	SmartWallet} from '../common/web3/smart_wallet' 
+	SmartWallet} from '../common/web3/smart_wallet' ;
 
 declare var global : any ; 
-var ethers = apis.ethers.ethers; 
+var ethers = apis.ethers.ethers;
 
 const log = get_logger({id:"ndev"})
 
@@ -152,5 +152,4 @@ async function amm_balancer() {
 }
 
 await main() ; 
-
 

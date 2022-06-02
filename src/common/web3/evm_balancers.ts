@@ -2,7 +2,6 @@ import {ethers} from "ethers" ;
 import * as pbl from "../trading/portfolio_balancer_lib" ; 
 import UNISWAP from "@uniswap/sdk" ; 
 import * as abis from  "./abis/index" ;
-import * as tmgr from "./transaction_manager_lib" ; 
 import {toEth} from "./utils" 
 import {SmartWallet, TxType} from "./smart_wallet" ; 
 
