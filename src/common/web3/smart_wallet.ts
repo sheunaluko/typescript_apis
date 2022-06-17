@@ -11,12 +11,22 @@ const {
 }  = ethers.utils ; 
 
 /*
-  Extend the ethers.Wallet class to make a wallet that automatically 
-  Resends transactions with higher gasPrice until the transaction is mined 
-  OR the number of tries is reached OR a max gasPrice is reached 
 
-  Supports EIP_1559 and legacy transactions for greater EVM coverage 
+  Extension of the ethers.Wallet class 
+
+  - can automatically resend transactions with higher gasPrice until the transaction is mined 
+  OR the number of tries is reached OR a max gasPrice is reached 
+  - Supports EIP_1559 and legacy transactions for greater EVM coverage 
+  - Supports eth transfers 
+  - Supports token approvals 
+  - Supports token swaps 
+
+
 */ 
+
+
+const maxNumAsString = "115792089237316195423570985008687907853269984665640564039457584007913129639935" ;
+const maxBigNum = ethers.BigNumber.from(maxNumAsString) ; 
 
 type GasOps = {
     gasPrice : ethers.BigNumber,
@@ -31,13 +41,16 @@ export enum  MaxGasType {
 export type MaxGasOps = {
     type : MaxGasType ,
     value:  ethers.BigNumber , 
-} 
+}
 
-export type SmartSendOps = { 
-    tx : ethers.UnsignedTransaction ,
+export interface BaseSmartSendOps {
     max_gas_ops : MaxGasOps , 
     timeout_ms : number ; 
     max_retries : number ; 
+} 
+
+export  interface SmartSendOps extends BaseSmartSendOps { 
+    tx : ethers.UnsignedTransaction 
 }
 
 export function scale_big_num(n : ethers.BigNumber, ratio : number ) {
@@ -57,6 +70,15 @@ export enum TxType {
     EIP_1559,
     LEGACY , 
 }
+
+
+export interface TokenApprovalOps {
+    token_contract : ethers.Contract,
+    allowee_addr : string,
+    base_smart_send_ops : BaseSmartSendOps  , 
+} 
+
+
 
 export type SmartWalletOps = {
     privateKey : string,
@@ -107,7 +129,7 @@ export class SmartWallet extends ethers.Wallet {
 
     async get_gas_overrides() {
 	let tx = {} ;
-	return (await this.wrap_transactions_with_gas([tx]))[0]
+	return (await this.wrap_transactions_with_gas([tx]))[0] ;
     }
 
     multiply_transactions_gas_pricing(txs : any[],multiplier : number) {
@@ -152,9 +174,65 @@ export class SmartWallet extends ethers.Wallet {
 	    gasLimit : ethers.BigNumber.from("25000") , 
 	}
 	return (await this.wrap_transactions_with_gas([tx]))[0] ; 
+    }
+
+
+    async get_token_allowance(token_contract : ethers.Contract , allowee_addr : string ) {
+	let allowance = await token_contract.allowance(this.address , allowee_addr) ; 
+	return allowance 
+    }
+
+    async token_allowance_is_maxed(token_contract : ethers.Contract, allowee_addr : string) {
+	let allowance = await this.get_token_allowance(token_contract, allowee_addr) ;
+	return ( allowance.eq( maxBigNum) ) ; 
+    }
+
+    async generate_approve_token_tx(token_contract : ethers.Contract, allowee_addr : string) {
+	var overrides = await this.get_gas_overrides() ; 
+	overrides.gasLimit = ethers.utils.parseUnits("100000",'gwei') ; //set gasLimit 
+	let gas_estimate = await token_contract.estimateGas.approve(allowee_addr, maxBigNum, overrides) ;
+	//set the estimate as the new gasLimit 
+	overrides.gasLimit = gas_estimate
+	//populate the transaction 
+	let tx = await token_contract.populateTransaction.approve(allowee_addr, maxBigNum , overrides) ;
+	return tx 
+    }
+    
+
+    async fully_approve_token(ops : TokenApprovalOps) {
+	let {
+	    token_contract, allowee_addr, base_smart_send_ops 
+	} = ops ; 
+	let tx = await this.generate_approve_token_tx(token_contract, allowee_addr) ;
+	let smart_ops = Object.assign({tx}, base_smart_send_ops)
+	return (await this.smartSendTransaction(smart_ops)) ;
+    }
+    
+
+    max_fee_ops(value : ethers.BigNumber)  {
+	return {
+	    type : MaxGasType.TxFee ,
+	    value
+	}
+    }
+
+    max_price_ops(value : ethers.BigNumber) {
+	return {
+	    type : MaxGasType.GasPrice,
+	    value  
+	} 
+    }
+
+
+    default_smart_send_base(ethFee : number ) {
+	let max_gas_ops = this.max_fee_ops( ethers.utils.parseEther(String(ethFee)))
+	let max_retries = 4 ;
+	let timeout_ms  = 45*1000 ;
+	return {
+	    max_gas_ops , max_retries, timeout_ms 
+	} 
     } 
-
-
+    
     async smartSendTransaction( ops : SmartSendOps ) { 
 	
         let { 
@@ -168,6 +246,7 @@ export class SmartWallet extends ethers.Wallet {
 	let tx_log = get_logger({id : `${this.id}:${nonce}` }); 
 
 	var tx_attempts : any = [] ;
+	var tx_receipts : any = [] ; 
 	
         tx_log("Processing SmartSend Tx Request::");
 	tx_log(`Nonce is ${nonce}`)	
@@ -208,12 +287,24 @@ export class SmartWallet extends ethers.Wallet {
 		    tx_log(tx_gas_info) 
 		}
 
-		
+
+		/* 
+		   This is complex... there was a bug where the first transaction timed out, so a second transaction with the same nonce was sent with higher gas. But then the second 
+		   transaction error with "nonce already used", since the first one had gotten mined already. But the first tx_receipt had already been "forgotten". 
+
+		   So I upgraded the architecture to hold the array of transaction receipts, and to run promise.any on these after appending the new transaction receipt. Theoretically, in this above case, the second transaction would error but the promise.any would be ok and return the FIRST tx_receipt which would now have completed. Theoretically..  
+
+		   The final step is to include this aggregate promise in a race with the timeout... 
+
+		 */
 		let tx_response = await this.sendTransaction(tx as any) ;
 		let tx_receipt  = tx_response.wait() ;
 		tx_attempts.push([tx_response, tx_receipt]) ;
+		tx_receipts.push(tx_receipt); //keeps track of all transaction receipts
+		// @ts-ignore 
+		let receipts_promise = Promise.any(tx_receipts) ; //wait for ANY on of the transactions to be successful, or for ALL to fail... 
+		let x : any = await Promise.race( [receipts_promise, asnc.wait(timeout_ms)] )  ;  //wait for one of the receipts, OR for the timeout
 		
-		let x : any = await Promise.race( [tx_receipt, asnc.wait(timeout_ms)] )  ;
 		// either a status.TIMEUT occurred OR the tx_receipt is returned 
 		if (x == asnc.status.TIMEOUT ) {
 		    //timeout occured
@@ -236,7 +327,7 @@ export class SmartWallet extends ethers.Wallet {
 		}  else {
 		    //there was no timeout -- so the transaction must have been mined and x is the transaction receipt
 		    tx_log("Transaction mined successfully!")
-		    tx_log(x) ;
+		    //tx_log(x) ;
 		    return {
 			status : TxStatus.Success ,
 			receipt : x ,

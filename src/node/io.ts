@@ -65,7 +65,8 @@ export type WriteFileOps = {
     path : string,
     data : string,
     append : boolean , 
-} 
+}
+
 /**
  * Write a text file to disk 
  */
@@ -74,6 +75,15 @@ export function write_text(ops : WriteFileOps)  {
     let { path : fpath, data, append } = ops ;
     ensure_dir( path.dirname(fpath) )  ;     
     return (append ? fs.appendFileSync(fpath, data) : write_file(fpath, data) ) ; 
+} 
+
+
+/**
+ * Remove file from filesystem  
+ * @param fname - file to remove 
+ */
+export function rm(fname : string)  {
+    fs.unlinkSync(fname) ; 
 } 
 
 

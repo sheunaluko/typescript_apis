@@ -103,6 +103,7 @@ export async function get_account_id_mapping(params: CoinbaseUserDataParams) {
 
 /**
  * Returns all user transfers on pro.coinbase.com
+ * For now this is limited to 300 transfers. 
  * @param params Dictionary containing the api key and api secret and passphrase 
  */
 export async function get_user_transfers(params: CoinbaseUserDataParams) {
@@ -116,6 +117,7 @@ export async function get_user_transfers(params: CoinbaseUserDataParams) {
 
 /**
  * Returns all user transfers (with the currencies resolved) on pro.coinbase.com
+ * For now this is limited to 300 transfers. 
  * @param params Dictionary containing the api key and api secret and passphrase 
  */
 export async function get_resolved_user_transfers(params: CoinbaseUserDataParams) {

@@ -114,7 +114,7 @@ export abstract class PortfolioBalancer {
 	
 	let info = {
 	    base_amt,quote_amt,base_price,portfolio_value,
-	    current_ratio, ratio_error, target_achieved,
+	    current_ratio, ratio_error, target_achieved, target_ratio ,target_precision, 
 	    target_base_amt, base_delta , trade_type , base_market_amt  
 	} ;
 

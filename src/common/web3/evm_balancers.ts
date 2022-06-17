@@ -3,7 +3,10 @@ import * as pbl from "../trading/portfolio_balancer_lib" ;
 import UNISWAP from "@uniswap/sdk" ; 
 import * as abis from  "./abis/index" ;
 import {toEth} from "./utils" 
-import {SmartWallet, TxType} from "./smart_wallet" ; 
+import {SmartWallet,
+	BaseSmartSendOps,
+	TxStatus, 
+	TxType} from "./smart_wallet" ; 
 
 
 export type GasOps = {
@@ -40,8 +43,6 @@ export type Token = {
 
 }  ;
 
-
-
 export interface AMMParams extends EVMParams {
     router_address : string,
     pool_address : string, 
@@ -63,6 +64,12 @@ type TokensInfo = {
 
 export class UniV2Balancer extends EVMBalancer {
 
+    /* 
+       Status -- i previously implemented the SmartWallet -- now I will need to 
+       finishing implementing the EVM balancer class using the SmartWallet to send the necessary 
+       transcations 
+    */
+
     params : AMMParams ;
     routerContract : ethers.Contract | null ;
     poolContract : ethers.Contract | null  ;    
@@ -71,7 +78,6 @@ export class UniV2Balancer extends EVMBalancer {
     token0Contract : ethers.Contract | null ;
     token1Contract : ethers.Contract | null ;
     tokens : TokensInfo | null ;
-    maxNumAsString : string ; 
     gasLimitMultiple : number  ; 
     
     
@@ -85,7 +91,6 @@ export class UniV2Balancer extends EVMBalancer {
 	this.token0Contract = null;
 	this.token1Contract = null;
 	this.tokens = null ;
-	this.maxNumAsString = "115792089237316195423570985008687907853269984665640564039457584007913129639935" ;
 	this.gasLimitMultiple = 1.2; 
     }
 
@@ -177,22 +182,20 @@ export class UniV2Balancer extends EVMBalancer {
 
 
     /* 
-       FYI the router abi has the following functions => 
-       'function getAmountsOut(uint amountIn, address[] memory path) public view returns(uint[] memory amounts)',
-       'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)'
+       Generates a swap transaction, as well as info about slippage, etc. Does not send the transaction!
     */ 
-    async generate_base_to_quote_swap_transaction(amt : number, nonce : number ) {
+    async generate_swap_transaction( base_or_quote : string , amt : number) {
 
-	let wallet = (this.wallet as ethers.Wallet) ;
-	let addr = (wallet.address as string) ;
+	this.log(`Generating transaction that will consume ${amt} ${base_or_quote} tokens`)
 
-	let overrides = {
-	    nonce  ,
-	    gasLimit : ethers.utils.parseUnits("120000",'gwei'), 
-	}
+	var output_info : any ;
 
-	let output_info = await this.estimate_quote_out(amt) ;
-	
+	if ( base_or_quote == "BASE") {
+	    output_info = await this.estimate_quote_out(amt) 
+	} else {
+	    output_info = await this.estimate_base_out(amt) ;	    
+	} 
+
 	let {
 	    amounts,
 	    amountOutNoSlip,
@@ -206,96 +209,123 @@ export class UniV2Balancer extends EVMBalancer {
 	    minAmountOut, 
 	} = output_info ;
 
-	console.log(output_info) 
+	this.log(output_info)
 
-	/* 
-	   TODO : 
-	   'gas required exceeds allowance ' is the error I am getting here 
-	   /-- will have to fix this somehow -- 
-	   i.e google this error :) 
-	*/
+	let overrides = await this.wallet.get_gas_overrides()  ;
+	overrides.gasLimit = ethers.BigNumber.from("200000")
 
-	await this.ensure_tokens_approved() ; 
-	
+	this.log("Estimating gas")
 	let gas_estimate = await (this.routerContract as ethers.Contract)
 	    .estimateGas
-	    .swapExactTokensForTokens(amountIn, minAmountOut, path, addr , (Date.now() + 1000 * 60*10) , overrides  ) ;
+	    .swapExactTokensForTokens(amountIn, minAmountOut, path, this.wallet.address , (Date.now() + 1000 * 60*10) , overrides  ) ;
 
-	return gas_estimate ;  // and then remove this line
+	this.log("Gas estimate=")
+	this.log(gas_estimate) 
 
 	// and then incorporate gas estimate into the beloow transaction
-	// by update overrides.gasLimit 
+	// by update overrides.gasLimit
+	overrides.gasLimit = gas_estimate 
 	
 	let tx = await (this.routerContract as ethers.Contract)
 	    .populateTransaction
-	    .swapExactTokensForTokens(amountIn, minAmountOut, path, addr , (Date.now() + 1000 * 60*10) , overrides  ) ;
+	    .swapExactTokensForTokens(amountIn, minAmountOut, path, this.wallet.address , (Date.now() + 1000 * 60*10) , overrides  ) ;
 	
 	return {tx , output_info,  gas_estimate}
     }
 
-    /* 
-       Makes sure that token tokens which need to be traded have each approved 
-       The routerContract to spend on their behalf 
-     */
-    async ensure_tokens_approved() {
-	let {
-	    base_token,
-	    quote_token,
-	    base_token_contract,
-	    quote_token_contract
-	} = (this.tokens as TokensInfo) ;
+    async do_swap(base_or_quote : string, amt : number , base_smart_send_ops : BaseSmartSendOps ) {
+	let {tx,output_info} = await this.generate_swap_transaction(base_or_quote, amt)  ;
+	let  {slippagePercent, max_slippage_percent}  = output_info ; 
+	if (slippagePercent > max_slippage_percent) {
+	    //abort
+	    this.log("Aborting swap due to high slippage")
+	    this.log(output_info)
+	    return { success : false  } 
+	} else {
+	    //can proceed with the swap
+	    this.log("Proceeding with swap") 
+	    let ops = Object.assign({tx}, base_smart_send_ops)
+	    return ( await this.wallet.smartSendTransaction(ops)) 
+	} 
+    } 
+    
 
-	this.log("checking base token");
-	return await (base_token_contract as ethers.Contract)
-	    .allowance(this.wallet.address, (this.routerContract as ethers.Contract).address)
-
-
-    }
-
-    async get_base_token_approval() {
-	let tokens = (this.tokens as TokensInfo)	
-	return await this.get_token_approval( tokens.base_token_contract as ethers.Contract , tokens.base_token_decimals as number)
-    }
-
-    async get_quote_token_approval() {
-	let tokens = (this.tokens as TokensInfo)
-	return await this.get_token_approval( tokens.quote_token_contract as ethers.Contract , tokens.quote_token_decimals as number )
-    }
-
-    async get_token_approval(c : ethers.Contract, decimals : number) {
-	let allowance = await c.allowance(this.wallet.address , (this.routerContract as ethers.Contract).address) ; 
-	return allowance 
-    }
-
+    // --- 
+    
     async base_token_approved() {
-	return ( (await this.get_base_token_approval()).toString() == this.maxNumAsString ) 
+	let tokens = (this.tokens as TokensInfo)
+	let token_contract = (tokens.base_token_contract as ethers.Contract)
+	let router_address = (this.routerContract as ethers.Contract).address ; 
+	return ( await this.wallet.token_allowance_is_maxed( token_contract , router_address ) )
     } 
 
     async quote_token_approved() {
-	return ( (await this.get_quote_token_approval()).toString() == this.maxNumAsString ) 
+	let tokens = (this.tokens as TokensInfo)
+	let token_contract = (tokens.quote_token_contract as ethers.Contract)
+	let router_address = (this.routerContract as ethers.Contract).address ; 
+	return ( await this.wallet.token_allowance_is_maxed( token_contract , router_address ) )
+    }
+
+    async approve_token(token_contract : ethers.Contract, base_smart_send_ops  : BaseSmartSendOps) {
+	let router_address = (this.routerContract as ethers.Contract).address ;
+	// approve the token
+	let ops = { 
+	    token_contract , 
+	    allowee_addr   : router_address ,
+	    base_smart_send_ops 
+	}
+
+	return (await this.wallet.fully_approve_token(ops))
     } 
 
-    async generate_approve_token_tx(base_or_quote : string) {
-	let {
-	    wallet,addr,overrides,
-	    base_token_contract , quote_token_contract, 
-	    router_contract, 
-	}  = await this.get_base_tx_ops() ;
+    async approve_quote_token( base_smart_send_ops  : BaseSmartSendOps) {
+	let tokens = (this.tokens as TokensInfo)
+	let token_contract = (tokens.quote_token_contract as ethers.Contract)
+	return (await this.approve_token(token_contract, base_smart_send_ops ))
+    } 
 
-	let token_contract = (base_or_quote == "BASE") ? base_token_contract : quote_token_contract  ; 
+    async approve_base_token( base_smart_send_ops  : BaseSmartSendOps) {
+	let tokens = (this.tokens as TokensInfo)
+	let token_contract = (tokens.base_token_contract as ethers.Contract)
+	return (await this.approve_token(token_contract, base_smart_send_ops ))
+    } 
+    
+    async prepare_tokens(base_smart_send_ops : BaseSmartSendOps) {
+	this.log("Checking tokens")
 
-	overrides.gasLimit = ethers.utils.parseUnits("100000",'gwei') ;
+	if (! base_smart_send_ops ) { this.log("No gas args provided!") ; return null } 
 
-	let maxBn = ethers.BigNumber.from(this.maxNumAsString)
-	let gas_estimate = await token_contract.estimateGas.approve(router_contract.address, maxBn, overrides) ;
-
- 	let new_gas = Math.ceil(this.gasLimitMultiple*Number(gas_estimate.toString())) ;
-	let new_gas_BN  = ethers.BigNumber.from(String(new_gas)) ; 
+	var base_result : any; var quote_result : any ; 
 	
-	overrides.gasLimit = new_gas_BN ; 
-	let tx = await token_contract.populateTransaction.approve(router_contract.address, maxBn , overrides) ;
-	return {tx , gas_estimate , new_gas , new_gas_BN }
-    }
+	if (! (await this.base_token_approved()) ) {
+	    this.log("Base token not approved...") 
+	    base_result  = await this.approve_base_token(base_smart_send_ops) ; 
+	} else  {
+	    this.log("Base token already approved...") 	    
+	    base_result = { status : TxStatus.Success }
+	} 
+	
+	if (! (await this.quote_token_approved()) ) {
+	    this.log("Quote token not approved...") 
+	    quote_result  = await this.approve_quote_token(base_smart_send_ops) ; 
+	} else {
+	    this.log("Quote token already approved...") 	    	    
+	    quote_result = { status : TxStatus.Success }	    
+	} 
+
+	if ((base_result.status == TxStatus.Success) &&
+	    (quote_result.status == TxStatus.Success) ) {
+	    this.log("Both token approvals succeeded!")
+	    return {success : true }  
+	} else {
+	    this.log("Unfortunately there was an error with the token approvals")
+	    return {success : false, data : {base_result, quote_result }} 
+	} 
+	
+    } 
+
+
+    // --- 
 
 
     async get_base_tx_ops() {
@@ -342,18 +372,20 @@ export class UniV2Balancer extends EVMBalancer {
 	let base_token = tokens.base_token as UNISWAP.Token; 
 	let quote_token = tokens.quote_token as UNISWAP.Token ;
 
+
 	var {
 	    base_amt,quote_amt,base_price,portfolio_value,
 	    current_ratio, ratio_error, target_achieved,
 	    target_base_amt, base_delta , trade_type , base_market_amt  
 	} = (await this.get_balance_data() ); 
 
+
 	let amountIn = ethers.utils.parseUnits(String(amt), base_token.decimals);
 	let path = [base_token.address,quote_token.address]  ;	
 	let amountOutNoSlip = amt*base_price ;
 
 
-	this.log(amountIn) ; 
+	//this.log(amountIn) ; 
 	let amounts = await (this.routerContract as ethers.Contract).getAmountsOut(amountIn, path);
 	let amountOut = Number(ethers.utils.formatUnits(amounts[1],quote_token.decimals))
 
@@ -361,7 +393,7 @@ export class UniV2Balancer extends EVMBalancer {
 	let slippagePercent = slippageRatio*100 ;
 	let {max_slippage_percent} = this.params ; 
 	let minAmountOutNum = (amountOutNoSlip*(1-max_slippage_percent/100) ).toFixed(quote_token.decimals);
-	console.log(minAmountOutNum) ; 
+	//console.log(minAmountOutNum) ; 
 
 	let minAmountOut = ethers.utils.parseUnits(String(minAmountOutNum), quote_token.decimals);	    
 	
@@ -378,15 +410,52 @@ export class UniV2Balancer extends EVMBalancer {
 	    path 
 	} 
 
-    } 
-    
-    generate_transaction_fn(tx : any) {
-	
-    } 
+    }
 
-    generate_quote_to_base_swap_transaction(amt : number ) {
+    async estimate_base_out(amt : number) {
+	let tokens = this.tokens as TokensInfo ;
+	let base_token = tokens.base_token as UNISWAP.Token; 
+	let quote_token = tokens.quote_token as UNISWAP.Token ;
+
+	var {
+	    base_amt,quote_amt,base_price,portfolio_value,
+	    current_ratio, ratio_error, target_achieved,
+	    target_base_amt, base_delta , trade_type , base_market_amt  
+	} = (await this.get_balance_data() ); 
 	
-    } 
+
+	let amountIn = ethers.utils.parseUnits(String(amt), quote_token.decimals);
+	let path = [quote_token.address,base_token.address]  ;	
+	let amountOutNoSlip = amt/base_price ;
+
+
+	//this.log(amountIn) ; 
+	let amounts = await (this.routerContract as ethers.Contract).getAmountsOut(amountIn, path);
+	let amountOut = Number(ethers.utils.formatUnits(amounts[1],base_token.decimals))
+
+	let slippageRatio = (amountOutNoSlip-amountOut)/amountOutNoSlip ;
+	let slippagePercent = slippageRatio*100 ;
+	let {max_slippage_percent} = this.params ; 
+	let minAmountOutNum = (amountOutNoSlip*(1-max_slippage_percent/100) ).toFixed(base_token.decimals);
+	//console.log(minAmountOutNum) ; 
+
+	let minAmountOut = ethers.utils.parseUnits(String(minAmountOutNum), base_token.decimals);	    
+	
+	return {
+	    amounts,
+	    amountOutNoSlip,
+	    amountIn, 
+	    amountOut,
+	    slippageRatio,
+	    slippagePercent,
+	    max_slippage_percent,
+	    minAmountOutNum,
+	    minAmountOut, 
+	    path 
+	} 
+
+    }     
+    
     
     async get_pool_reserves() {
 	let tokens = (this.tokens as TokensInfo) ;
@@ -405,8 +474,23 @@ export class UniV2Balancer extends EVMBalancer {
     } 
     
     async do_market_trade(trade_type : pbl.MarketTradeType, base_amt : number) : Promise<pbl.MarketResult> {
-	return {error : false, info : null } 
+	var result : any ; 
+	switch (trade_type ) {
+	    case pbl.MarketTradeType.BUY :
+		result = await this.do_swap("QUOTE" , base_amt  ,  this.wallet.default_smart_send_base(0.05))
+		break
+	    case pbl.MarketTradeType.SELL :
+		result = await this.do_swap("BASE" , base_amt  ,  this.wallet.default_smart_send_base(0.05))		    
+		break
+	}
+
+	if (result.status == TxStatus.Success) {
+	    return {error:false, info : result } 
+	} else {
+	    return {error : true, info : result } 
+	} 
     }
+    
     
     symbol_generator(ba : string , qa : string )  : string {
 	return `${ba}/${qa}`
