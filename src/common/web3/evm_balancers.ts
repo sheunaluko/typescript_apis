@@ -65,9 +65,7 @@ type TokensInfo = {
 export class UniV2Balancer extends EVMBalancer {
 
     /* 
-       Status -- i previously implemented the SmartWallet -- now I will need to 
-       finishing implementing the EVM balancer class using the SmartWallet to send the necessary 
-       transcations 
+       --- 
     */
 
     params : AMMParams ;

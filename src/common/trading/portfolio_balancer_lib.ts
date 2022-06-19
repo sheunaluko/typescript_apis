@@ -4,8 +4,8 @@
   Abstract logic for implementing portfolio balancing trading strategy 
 
   Todo: 
-  - 1) create EVM balancer (extend PortfolioBalancer and BalanceParams) 
-  - 2) create Backtest balancer 
+  - 1) create EVM balancer (extend PortfolioBalancer and BalanceParams)  [x] 
+  - 2) create Backtest balancer  [ ... ] 
 
 */
 
@@ -46,10 +46,12 @@ export abstract class PortfolioBalancer {
 
     Params : BalanceParams;
     Logger : any ;
+    last_balance_data : any ; 
 
     constructor(params : BalanceParams) {
 	this.Params = params ;
 	this.Logger = get_logger({id: params.logger_id}) ;
+	this.last_balance_data = {} ; 
     }
 
     /**
@@ -118,6 +120,7 @@ export abstract class PortfolioBalancer {
 	    target_base_amt, base_delta , trade_type , base_market_amt  
 	} ;
 
+	this.last_balance_data = info ; // :) 
 	return info 
     }
     
