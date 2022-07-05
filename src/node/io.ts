@@ -3,17 +3,46 @@ import path from 'path' ;
 
 
 /**
- * Save string to disk 
+ * Write string or buffer to disk 
  * 
  */
-export function write_file(fname : string,s : string) { fs.writeFileSync(fname,s) ; } 
+export function write_file(fname : string,s : (string | Buffer) ) { fs.writeFileSync(fname,s) ; } 
 
 
 /**
- * Read a text file from disk
+ * Read a text file from disk 
  * 
  */
 export function read_file(fname : string)  : string { return fs.readFileSync(fname , 'utf8') }
+
+/**
+ * Read a file from disk and returns a buffer
+ * 
+ */
+export function read_buffer_from_file(fname : string)  { return fs.readFileSync(fname) }
+
+/**
+ * Blocks the runtime until N bytes are read from a readable stream 
+ * 
+ * @param readable - Readable stream to read from 
+ * @param n - Number of bytes to read 
+ */
+export function read_n_bytes_from_stream( readable : any , n : number ) {
+    var chunk ; 
+    while (null !== (chunk = readable.read(n))) {
+	return chunk 
+    }
+}
+
+
+
+
+/**
+ * Read a file from disk and returns a readable stream 
+ * 
+ */
+export function readable_stream_from_file(fname : string)  { return fs.createReadStream(fname) }
+
 
 /**
  * Read a text file from disk (same as read_file) 

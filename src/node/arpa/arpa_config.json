@@ -1,0 +1,13 @@
+[
+  {
+    "type" : "binanceus" ,
+    "parameters" : {
+      "base_asset" : "ETH" ,
+      "logger_id" : "binanceus.ethusdc" ,
+      "quote_asset" : "USDC" ,
+      "target_precision" : 0.05,
+      "target_ratio" : 0.6 
+    },
+    "keyfile" : "/Users/sheunaluko/.secret_stuff/crypto/shay_binance_us_api_keys.json" 
+  }
+]
