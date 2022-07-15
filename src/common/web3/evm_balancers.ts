@@ -43,7 +43,7 @@ export type Token = {
 
 }  ;
 
-export interface AMMParams extends EVMParams {
+export interface BaseAMMParams {
     router_address : string,
     pool_address : string, 
     chain_id : number,
@@ -52,6 +52,8 @@ export interface AMMParams extends EVMParams {
     token0_is_base_asset : boolean ,
     max_slippage_percent : number  , 
 }
+
+export interface AMMParams extends EVMParams, BaseAMMParams  {} 
 
 type TokensInfo = {
     base_token : UNISWAP.Token | null ,
@@ -187,11 +189,19 @@ export class UniV2Balancer extends EVMBalancer {
 	this.log(`Generating transaction that will consume ${amt} ${base_or_quote} tokens`)
 
 	var output_info : any ;
+	var _amt : any ; 
+	let tokens = (this.tokens as TokensInfo) ;
+	let base_token  = (tokens.base_token as UNISWAP.Token) ; 
+	let quote_token = (tokens.quote_token as UNISWAP.Token) ; 
 
 	if ( base_or_quote == "BASE") {
-	    output_info = await this.estimate_quote_out(amt) 
+	    _amt = Number(amt.toFixed(base_token.decimals))
+	    this.log(`Converted ${amt} to ${_amt} for base input`)
+	    output_info = await this.estimate_quote_out(_amt) 
 	} else {
-	    output_info = await this.estimate_base_out(amt) ;	    
+	    _amt = Number(amt.toFixed(quote_token.decimals))
+	    this.log(`Converted ${amt} to ${_amt} for quote input`)	    	    
+	    output_info = await this.estimate_base_out(_amt) ;	    
 	} 
 
 	let {
@@ -472,13 +482,15 @@ export class UniV2Balancer extends EVMBalancer {
     } 
     
     async do_market_trade(trade_type : pbl.MarketTradeType, base_amt : number) : Promise<pbl.MarketResult> {
-	var result : any ; 
+	var result : any ;
+
+	
 	switch (trade_type ) {
 	    case pbl.MarketTradeType.BUY :
-		result = await this.do_swap("QUOTE" , base_amt  ,  this.wallet.default_smart_send_base(0.05))
+		result = await this.do_swap("QUOTE" , new_base_amt  ,  this.wallet.default_smart_send_base(0.05))
 		break
 	    case pbl.MarketTradeType.SELL :
-		result = await this.do_swap("BASE" , base_amt  ,  this.wallet.default_smart_send_base(0.05))		    
+		result = await this.do_swap("BASE" , new_base_amt  ,  this.wallet.default_smart_send_base(0.05))		    
 		break
 	}
 

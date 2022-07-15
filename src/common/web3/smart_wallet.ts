@@ -433,3 +433,38 @@ export class SmartWallet extends ethers.Wallet {
     
 }
 
+
+
+// ---
+// Providers 
+// -- 
+
+export enum ProviderType {
+    Ethereum,
+    Fantom ,
+    Arbitrum,
+    Polygon,
+}
+
+export function get_provider(p : ProviderType) {
+    switch (p) {
+	case ProviderType.Ethereum :
+	    return new ethers.providers.InfuraProvider( 'mainnet', process.env['ETHER_INFURA_PROJECT_ID'] ) ;
+	    break
+	case ProviderType.Fantom :
+	    //return new ethers.providers.JsonRpcProvider("https://rpc.ftm.tools/") ;
+	    return new ethers.providers.JsonRpcProvider("https://rpcapi.fantom.network/") ; 	    
+	    break 
+	case ProviderType.Arbitrum :
+	    return new ethers.providers.InfuraProvider( 'mainnet', process.env['ARBITRUM_INFURA_PROJECT_ID'] ) ; 
+	    break
+	case ProviderType.Polygon :
+	    return new ethers.providers.JsonRpcProvider('https://polygon-rpc.com') ; 
+	    break
+    } 
+}
+
+export function fantom_provider() { return get_provider(ProviderType.Fantom) }
+export function ethereum_provider() { return get_provider(ProviderType.Ethereum) }
+export function arbitrum_provider() { return get_provider(ProviderType.Arbitrum) }
+export function polygon_provider() { return get_provider(ProviderType.Polygon) } 
