@@ -487,10 +487,10 @@ export class UniV2Balancer extends EVMBalancer {
 	
 	switch (trade_type ) {
 	    case pbl.MarketTradeType.BUY :
-		result = await this.do_swap("QUOTE" , new_base_amt  ,  this.wallet.default_smart_send_base(0.05))
+		result = await this.do_swap("QUOTE" , base_amt  ,  this.wallet.default_smart_send_base(0.05))
 		break
 	    case pbl.MarketTradeType.SELL :
-		result = await this.do_swap("BASE" , new_base_amt  ,  this.wallet.default_smart_send_base(0.05))		    
+		result = await this.do_swap("BASE" , base_amt  ,  this.wallet.default_smart_send_base(0.05))		    
 		break
 	}
 
