@@ -102,7 +102,7 @@ export async function download_data_for_page(dir : string, p : string) {
  * Main entry point for downloading historical data. 
  * Just enter the top level directory to download data to and the symbol you want to download 
  * and this will download the hourly kline data for that symbol. 
- * This includes download zip files, checking the checksums, and extracting the csvs. 
+ * This includes downloading zip files, checking the checksums, and extracting the csvs. 
  * The data will be in a nested location within the suppplied top level directory. 
  */
 export async function download_hourly_kline_data_for_symbol(dir : string, symbol : string) {
