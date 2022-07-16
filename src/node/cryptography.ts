@@ -4,7 +4,8 @@ import {
     randomFill,
     createCipheriv,
     createDecipheriv ,   
-    randomBytes    
+    randomBytes    ,
+    createHash
 } from 'crypto' ;
 
 import util from "util" ;
@@ -181,3 +182,15 @@ export async function aes_192_decrypt_file(password : string, filename : string 
 
 
 
+/**
+ * Computes the hash (checksum) of a file 
+ * @param fname - Name of the file 
+ * @param hash_type  - Type of hash to compute 
+ */
+export function file_checksum(fname : string, hash_type : string) {
+    let hash = createHash(hash_type) ;
+    const input = fs.readFileSync(fname) ; 
+    hash.update(input)
+    let result = hash.digest("hex")
+    return result 
+} 

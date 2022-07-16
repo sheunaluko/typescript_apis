@@ -1,6 +1,12 @@
 import  fs from 'fs' ;
 import path from 'path' ; 
+import extract from 'extract-zip';
 
+import * as tapi from "../index" ; 
+const { node, common  } = tapi ;
+
+
+const log = common.logger.get_logger({id: "io"}) 
 
 /**
  * Write string or buffer to disk 
@@ -77,9 +83,16 @@ export function ensure_extension(fname : string, ext : string)  {
 
 /**
  * Makes sure a directory exists and if not creates it. 
- * 
  */
 export function ensure_dir(dir : string)  { if (!fs.existsSync(dir)){ fs.mkdirSync(dir, { recursive: true });  } } 
+
+/**
+ * Ensures parent directories exist
+ */
+export function ensure_parents(fname : string)  {
+    let p = path.dirname(fname) ; 
+    ensure_dir(p) ; 
+} 
 
 /**
  * Write a json file to disk 
@@ -133,6 +146,24 @@ export function read_nonhidden_subfiles(dname : string) {
     ).map(
 	(y:string) => path.join(dname,y)
     )
+} 
+
+
+
+/**
+ * Extracts a zip file to a directory 
+ * @param fname - The local filename 
+ * @param target - Target directory 
+ */ 
+export async function unzip_to_directory(fname : string,  target : string) {
+    try {
+	await extract(fname, { dir: target })
+	log(`unzip complete | ${fname}`)
+    } catch (err) {
+	// handle any errors
+	log(`unzip error | ${fname}`)	
+	log(err) 
+    }    
 } 
 
 

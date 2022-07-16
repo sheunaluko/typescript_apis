@@ -46,12 +46,14 @@ export abstract class PortfolioBalancer {
 
     Params : BalanceParams;
     Logger : any ;
-    last_balance_data : any ; 
+    last_balance_data : any ;
+    log_mode : string ; 
 
     constructor(params : BalanceParams) {
 	this.Params = params ;
 	this.Logger = get_logger({id: params.logger_id}) ;
-	this.last_balance_data = {} ; 
+	this.last_balance_data = {} ;
+	this.log_mode = "verbose" ; 
     }
 
     /**
@@ -65,8 +67,9 @@ export abstract class PortfolioBalancer {
     async  balance_portfolio() {
 
 	let {base_asset,quote_asset} = this.Params ; 
-	
-	this.log("Balancing...") 
+	if (this.log_mode == "verbose") { 
+	    this.log("Balancing...")
+	} 
 	let info = await this.get_balance_data() ; 
 	let {
 	    base_amt,quote_amt,base_price,portfolio_value,
@@ -74,15 +77,22 @@ export abstract class PortfolioBalancer {
 	    target_base_amt, base_delta , trade_type , base_market_amt 
 	}  = info ;
 
-	this.log(info) ; 
+	if (this.log_mode =="verbose") { 
+	    this.log(info) ;
+	}
+	
 	if (target_achieved) {
-	    this.log("Target ratio already achieved. Returning")
+	    if (this.log_mode == "verbose") { 
+		this.log("Target ratio already achieved. Returning")
+	    }
 	    return { balanced : false , balance_needed : false , info : null } 
 	} else { 
 	    //allocation ratio is outta whack
 	    //need to rebalance the portfolio
-	    this.log("Target ratio NOT achieved. Continuing.") 	    
-	    this.log(`Processing order to ${trade_type} ${base_market_amt} ${base_asset}`)
+	    if (this.log_mode == "verbose") { 
+		this.log("Target ratio NOT achieved. Continuing.") 	    
+		this.log(`Processing order to ${trade_type} ${base_market_amt} ${base_asset}`)
+	    } 
 	    let result = await this.do_market_trade(trade_type,base_market_amt); 
 	    let {error,info: result_info} = result ;
 	    return { balanced : !error, balance_needed : true , info : result_info}
@@ -123,7 +133,13 @@ export abstract class PortfolioBalancer {
 	this.last_balance_data = info ; // :) 
 	return info 
     }
-    
+
+    set_log_mode(s : string)  {
+	if (this.log_mode == "verbose") {
+	    this.log(`Setting log mode to ${s}`) ;
+	    this.log_mode = s ;
+	} 
+    } 
 
     abstract get_quote_balance(qa:string) : Promise<number>  ; 
     abstract get_base_balance(ba:string)  : Promise<number> ; 

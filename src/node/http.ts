@@ -1,12 +1,12 @@
 
 
 /*
-  HTTP Utilities 
+  Network/HTTP Utilities 
 */
 import fetch from 'node-fetch';
 import { JSDOM } from 'jsdom'; 
 import fs from 'fs';
-import extract from 'extract-zip';
+
 
 import * as tapi from "../index" ; 
 const { node, common  } = tapi ;
@@ -82,6 +82,7 @@ export async function get_json_with_headers(url : string, headers: any) {
  */ 
 export async function download_url_to_file(url : string, fname : string) {
     const res = await fetch(url);
+    node.io.ensure_parents(fname) ; 
     const fileStream = fs.createWriteStream(fname);
     await new Promise((resolve, reject) => {
 	let body = (res.body as any) ;
@@ -90,23 +91,6 @@ export async function download_url_to_file(url : string, fname : string) {
 	fileStream.on("finish", resolve);
     });
 }
-
-
-/**
- * Extracts a zip file to a directory 
- * @param fname - The local filename 
- * @param target - Target directory 
- */ 
-export async function unzip_to_directory(fname : string,  target : string) {
-    try {
-	await extract(fname, { dir: target })
-	log(`unzip complete | ${fname}`)
-    } catch (err) {
-	// handle any errors
-	log(`unzip error | ${fname}`)	
-	log(err) 
-    }    
-} 
 
 
 

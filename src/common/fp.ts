@@ -54,3 +54,32 @@ export function map_prop(prop : string, list : any[]) { return R.map(R.prop(prop
 export function map_prop_reduce(prop : string, reducer : any, acc : any, list : any[]) {
     return R.reduce( reducer , acc , map_prop(prop, list) ) 
 } 
+
+
+/**
+ *  Takes an array of X arrays with Y values each, and produces an array of Y arrays with 
+ *  X values each. The first array is the concatenation of the first elemenent of each subarray.
+ * The second returned array is the concatenation of the second element of each subarray. 
+ * And so forth. 
+ * 
+ * ```
+ * //create a dictionary from separate key/value arrays 
+ * let keys = ['a', 'b', 'c'] ; let values = ['v1', 'v2' ,'v3] 
+ * let pairs = concat_accross_index( [keys,values]  ) 
+ * //  > [ ['a', 'v1'] , ['b', 'v2'] ... ] 
+ * let dic  = Object.fromEntries( ) ) 
+ * ```
+ */
+export function concat_accross_index( arrs : any[]) {
+    let result = []
+    let res_len = arrs[0].length
+    let arr_len = arrs.length ; 
+    for (var i = 0 ; i < res_len ; i ++ ) {
+	var tmp = new Array() ; 
+	for ( var x = 0; x < arr_len ; x ++ ) {
+	    tmp.push( arrs[x][i] )
+	}
+	result.push(tmp) 
+    }
+    return result 
+} 

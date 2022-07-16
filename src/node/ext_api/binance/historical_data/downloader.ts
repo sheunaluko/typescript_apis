@@ -1,6 +1,7 @@
 import {common, node} from "../../../../index"
-var { io, puppeteer } = node ;
-var {R} = common ; ; 
+var { io, puppeteer , cryptography, http } = node ;
+var {R} = common ; ;
+
 
 
 const log = common.logger.get_logger({id: "binancedld"}) ;
@@ -15,23 +16,97 @@ export async function extract_binance_market_data_links(page  : any) {
 } 
 
 
+export function link_to_fpath(link : string) {
+    return link.split("vision/data/")[1] ; 
+}
 
-export async function main() {
+
+/**
+ * Main function for downloading a link object. 
+ * Link object consists of {checksum_link, zip_link} 
+ * It will download the data to subdirectory of 'dir' 
+ */
+export async function handle_link_object( dir  : string, lo : any ) {
+    
+    let { checksum_link , zip_link } = lo ;
+    let cpath = node.io.path.join( dir, link_to_fpath(checksum_link) )
+    let zpath = node.io.path.join( dir, link_to_fpath(zip_link) )
+    //download both links
+    if (node.io.exists(cpath) && node.io.exists(zpath) ) {
+	log(`ALREADY EXISTS: ${cpath}`)
+	log(`ALREADY EXISTS: ${zpath}`)
+	
+    } else { 
+	let result = await Promise.all( [
+	    http.download_url_to_file(checksum_link, cpath) ,
+	    http.download_url_to_file(zip_link,      zpath) 
+	])
+	log(`Downloaded ${cpath}`)
+	log(`Downloaded ${zpath}`)
+    }
+    
+    log("Validating checksum...")
+    let ccs = cryptography.file_checksum(zpath, 'sha256').trim() ;
+    let rcs = node.io.read_text(cpath).split(/\s/)[0].trim() ;
+    if ( ccs == rcs ) {
+	log("Checksums match!")  ; 
+    } else {
+	log("ERROR: checksums do not match!")
+	log(`computed=${ccs}`)
+	log(`realchec=${rcs}`)
+
+	log("Deleting files...")
+	node.io.rm(cpath) ;
+	node.io.rm(zpath) ;
+	log("Trying again...")
+	await handle_link_object(dir, lo) ; 
+    }
+
+    //now that checksums match we can unzip the files
+    log(`Unzipping ${zpath}`)
+    await node.io.unzip_to_directory(zpath,node.io.path.dirname(zpath))
+    log(`Done`)
+    
+} 
+
+export var test_page = "https://data.binance.vision/?prefix=data/spot/monthly/klines/ETHUSDT/1h/" ;
+
+
+export async function get_links_for_page(p : string) {
     let page = await puppeteer.new_page({});
     log("created new new page")
     await Promise.all([
-	page.goto("https://data.binance.vision/?prefix=data/spot/monthly/klines/ETHUSDT/1h/"), 
+	page.goto(p), 
 	page.waitForSelector(dl_selector) 
     ])
     log("data available") 
-    
     
     // -- 
     let data = await extract_binance_market_data_links(page) ;
     log("data retrieved") 
     return data
-
-    // --
-    // todo -- create tools for populating local data cache. 
 } 
 
+
+export async function download_data_for_page(dir : string, p : string) {
+    log(`I N I T - ${p}`)    
+    let d = await get_links_for_page(p)  ;
+    for ( var lo of d ) {
+	await handle_link_object(dir,lo) 
+    }
+    log(`D O N E - ${p}`)
+} 
+
+
+/**
+ * Main entry point for downloading historical data. 
+ * Just enter the top level directory to download data to and the symbol you want to download 
+ * and this will download the hourly kline data for that symbol. 
+ * This includes download zip files, checking the checksums, and extracting the csvs. 
+ * The data will be in a nested location within the suppplied top level directory. 
+ */
+export async function download_hourly_kline_data_for_symbol(dir : string, symbol : string) {
+
+    let page = `https://data.binance.vision/?prefix=data/spot/monthly/klines/${symbol}/1h/`
+    await download_data_for_page(dir, page) ;
+} 

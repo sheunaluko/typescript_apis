@@ -78,8 +78,8 @@ export class BacktestBalancer extends pbl.PortfolioBalancer {
 	super(p);
 	this.data = p.data ; 
 	this.current_index = -1 ;
-	this.portfolio = p.initial_portfolio ;
-	this.initial_portfolio = p.initial_portfolio ; 
+	this.portfolio = Object.assign( {} , p.initial_portfolio );
+	this.initial_portfolio = Object.assign( {} , p.initial_portfolio ) ; 
 	this.rebalances = [] ;
 	this.slippage = p.slippage;
 	this.fee = p.fee;
