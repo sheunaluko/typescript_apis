@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Web Graphing Utility</title>
+
+<script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-2.4.3.min.js"></script>
+<script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-gl-2.4.3.min.js"></script>
+<script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-widgets-2.4.3.min.js"></script>
+<script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-tables-2.4.3.min.js"></script>
+<script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-mathjax-2.4.3.min.js"></script>
+<script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-api-2.4.3.min.js"></script>
+
+<script>
+//The order of CSS and JS imports above is important.
+</script>
+
+<script>
+
+  function log(a) {
+      console.log(a)  ; 
+  }
+
+  
+  // create function to connect to websocket server
+  function connect_to_wss(){
+
+      var ws_url_base = null ; 
+      let loc  = window.location.href ;
+      if (loc.match("file")) {
+	  //accessing via  local file ... so
+	  ws_url_base = `ws://localhost:`
+      } else {
+	  //will be based on ip address
+	  let ip = loc.split(":")[1].replace("//", "") ;
+	  ws_url_base = `ws://${ip}:`	  
+      } 
+      
+      let params = new URLSearchParams(window.location.search)
+      let port = (params.get('port') || 9000)
+      let ws_url = `${ws_url_base}${port}/ws`
+      log(`wsurl : ${ws_url}`)
+      let ws = new WebSocket(ws_url);
+      log(`Connected to port ${port}`)
+      return ws ; 
+  }
+
+  var ws = connect_to_wss() ;
+
+  var data_cache = {} ;
+  var plot_cache = {} ; 
+
+  ws.onmessage = function msg(event) {
+
+      //log(data)
+      
+      let msg = JSON.parse(event.data) ;
+      
+
+      switch (msg.type) {
+
+      case 'register_data' :
+	  data_cache[msg.id] = msg.data 
+	  log(`registered data - ${msg.id}`)	  
+	  break
+
+      case 'new_plot' :
+	  log("new plot")
+
+	  var el = document.querySelector(".bk-root")
+	  if (el) {
+	      document.body.removeChild(el) ;
+	  }
+
+	  let {
+	      source_id ,
+	      title,
+	      tools,
+	      sizing_mode ,
+	      height ,
+	      width ,
+	      plot_type ,
+	      plot_id,
+	      fields ,
+	      options ,
+	  }  = msg ;
+
+	  //extract the data source
+	  let data = data_cache[source_id] ;
+	  let source = new Bokeh.ColumnDataSource({data })
+	  //make the plot 
+	  let plot = Bokeh.Plotting.figure({
+	      title,
+	      tools, 
+	      height,
+	      width,
+	      sizing_mode, 
+	  });
+	  //register the plot
+	  plot_cache[plot_id] = {plot, source} ;
+	  //draw the series
+	  options = (options || {})
+	  options.source = source ; 
+	  plot[plot_type]( {field : fields[0] } , {field : fields[1]}, options )
+	  //show the plot
+	  Bokeh.Plotting.show(plot) 
+	  
+	  break 
+      }  
+      
+  } 
+
+
+
+
+  
+</script>
+</head>
+
+<body>
+</body>
+
+</html>
