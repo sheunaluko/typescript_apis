@@ -29,8 +29,15 @@ export function time_series(x : any,y : any) {
 
 /**
  * Creates a bar chart from specified data. 
- * Data is an array of arrays, where first array is ("x name", "y name"), 
- * and then the following arrays are the data pairs (x,y). 
+ * Data is an array of arrays, of the format shown below: 
+ * ``` 
+ * var test_bar_data = [
+ *   ["Fruit" , "Value" ] ,
+ *   ["Apple" , 1 ] , 
+ *   ["Banana" , 2] ,
+ *   ["Pear" , 1 ] , 
+ * ]
+ * ```
  */
 export function bar_chart(data : any) {
     let source_id = 'bar_chart' ;
