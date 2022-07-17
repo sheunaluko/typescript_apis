@@ -48,31 +48,31 @@
   var ws = connect_to_wss() ;
 
   var data_cache = {} ;
-  var plot_cache = {} ; 
+  var plot_cache = {} ;
+
+  function clear_bokeh(){
+      var el = document.querySelector(".bk-root")
+      if (el) {
+	  document.body.removeChild(el) ;
+      }
+  }
 
   ws.onmessage = function msg(event) {
 
       //log(data)
       
       let msg = JSON.parse(event.data) ;
-      
 
-      switch (msg.type) {
-
-      case 'register_data' :
+      if (msg.type ==  'register_data' ) { 
 	  data_cache[msg.id] = msg.data 
-	  log(`registered data - ${msg.id}`)	  
-	  break
-
-      case 'new_plot' :
+	  log(`registered data - ${msg.id}`)
+	  
+      } else if (msg.type == "new_plot") { 
 	  log("new plot")
 
-	  var el = document.querySelector(".bk-root")
-	  if (el) {
-	      document.body.removeChild(el) ;
-	  }
+	  clear_bokeh() 
 
-	  let {
+	  var {
 	      source_id ,
 	      title,
 	      tools,
@@ -82,33 +82,71 @@
 	      plot_type ,
 	      plot_id,
 	      fields ,
-	      options ,
+	      plot_options ,
+	      figure_options, 
 	  }  = msg ;
 
 	  //extract the data source
 	  let data = data_cache[source_id] ;
 	  let source = new Bokeh.ColumnDataSource({data })
 	  //make the plot 
-	  let plot = Bokeh.Plotting.figure({
+	  let plot = Bokeh.Plotting.figure(Object.assign({
 	      title,
 	      tools, 
 	      height,
 	      width,
-	      sizing_mode, 
-	  });
+	      sizing_mode,
+	  }, (figure_options || {} ) ));
 	  //register the plot
 	  plot_cache[plot_id] = {plot, source} ;
 	  //draw the series
-	  options = (options || {})
-	  options.source = source ; 
-	  plot[plot_type]( {field : fields[0] } , {field : fields[1]}, options )
+	  plot_options = (plot_options || {})
+	  plot_options.source = source ; 
+	  plot[plot_type]( {field : fields[0] } , {field : fields[1]},plot_options )
 	  //show the plot
-	  Bokeh.Plotting.show(plot) 
+	  Bokeh.Plotting.show(plot)
 	  
-	  break 
-      }  
-      
-  } 
+      } else if (msg.type == 'add_plot' ) {
+	  
+	  log("add plot")
+
+	  var {
+	      source_id ,
+	      plot_type ,
+	      plot_id,
+	      fields ,
+	      plot_options ,
+	  }  = msg ;
+
+	  //get the plot
+	  var plot = plot_cache[plot_id].plot ; 
+	  //draw the series
+	  plot_options = (plot_options || {}) ; 
+	  plot_options.source = new Bokeh.ColumnDataSource({data : data_cache[source_id]})
+	  
+	  plot[plot_type]( {field : fields[0] } , {field : fields[1]},plot_options )
+	  //show the plot
+	  //Bokeh.Plotting.show(plot)
+
+      } else if (msg.type == 'bar_plot') {
+
+	  log("bar plot") 
+	  clear_bokeh()
+
+	  let plt = Bokeh.Plotting;
+	  let bar_data = data_cache[msg.source_id] ;
+	  
+	  let  p1 = Bokeh.Charts.bar(bar_data, {
+	      axis_number_format: "0.[00]a",
+	      orientation : "vertical" , 
+	  });
+
+	  plt.show(p1) 
+	  
+      } 
+
+  }
+
 
 
 

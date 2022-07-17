@@ -5,6 +5,7 @@ import * as utils from "./utils"
 import * as external_apis from "./ext_api/index"
 import * as cryptography from "./cryptography"
 import * as trading from "./trading/index" 
+import * as arpa from "./arpa/index"
 
 export {
     http ,
@@ -13,5 +14,6 @@ export {
     external_apis,
     cryptography,
     trading,
-    utils, 
+    utils,
+    arpa, 
 } 

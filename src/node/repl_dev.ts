@@ -5,7 +5,9 @@ const { common, node } =  tsa  ;
 const bokeh = node.external_apis.bokeh
 
 import {downloader as dl , parser } from "./ext_api/binance/historical_data/index" ;
-import * as btdev from "./arpa/backtesting/dev" 
+
+import * as btdev from "./arpa/backtesting/dev"
+import * as viz from "./arpa/backtesting/viz" 
 
 
 
@@ -27,7 +29,9 @@ let f2 = async function() {
 }
 
 
-var i = bokeh.api.get_interface() 
+var i = bokeh.api.get_interface()
+
+global.d = await btdev.main() 
 
 Object.assign( global , {
     dl ,
@@ -42,5 +46,6 @@ Object.assign( global , {
     i ,
     bapi : bokeh.api ,
     mm : common.module_manager  ,
+    viz, 
     tsa, 
 })

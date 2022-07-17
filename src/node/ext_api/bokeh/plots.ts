@@ -1,87 +1,53 @@
 import * as tsa from "../../../index"
-tsa.register_module(import.meta.url, 'plots') ; 
+tsa.register_module(import.meta.url, 'plots') ;
+import  * as api from "./api" 
 
 let log = console.log
 
 
-// test function
-export function test1(i : any ) {
-    let x = [ 1, 2, 3, 4, 10] 
-    let y = [ 1, 2, 7, 4, 10]
-
-    let data = { x , y } ;
-
-    var source_id = 'random' ; 
-
-    let plot_ops  =  {
-	'type' : 'new_plot' , 
-	fields  :  ['x' , 'y' ]  ,
-	title : 'Example of random D A T A', 
-	tools : "pan,wheel_zoom,box_zoom,reset,save", 
-	height : 300, 
-	width : 300, 
-	sizing_mode  : "stretch_both" ,
-	source_id  ,
-	plot_type  :  "line"  ,
-	plot_id    :  "meh" ,
-	options : {
-	} 
-    } 
-
-    let data_registration_ops = {
-	'type' : 'register_data'  ,
-	id : source_id , 
-	data : data 
-    }
-
-    log("sending register")
-    i.client.send(JSON.stringify(data_registration_ops))
-
-    log("sending new plot")
-    i.client.send(JSON.stringify(plot_ops)) 
-
+/**
+ * Creates a time series plot given x values and y values 
+ * 
+ */
+export function time_series(x : any,y : any) {
+    let data = {x,y }
+    let source_id = 'time_series' ;
+    let plot_id = 'time_series' ;
+    let fields = ['x', 'y']  ;
+    let title = 'Time series' ;
+    let tools = "pan,wheel_zoom,box_zoom,reset,save" ;
+    let height = 300 ;
+    let width  = 300 ; 
+    let sizing_mode = "stretch_both" ; 
+    let plot_type =  "line"  ; 
+    api.new_plot({
+	data, source_id, fields, title,  tools, height, width , sizing_mode, plot_type,
+	plot_id, plot_options : null , figure_options : null , 
+    })
+    
 } 
 
-export function test2(i : any ) {
-    let x = [ 1, 2, 3, 4, 5 ] ;
-    let y = [ 1, 2, 3, 4, 5 ] ;
-    let colors  = [ "red" , "blue", "green" , "red" , "black" ] 
-    let radii = [0.1, 0.2, 0.3, 0.4, 0.5 ] ; 
-
-    let data = { x , y, colors } ;
-
-    var source_id = 'random' ; 
-
-    let plot_ops  =  {
-	'type' : 'new_plot' , 
-	fields  :  ['x' , 'y' ]  ,
-	title : 'Example of random CIRCLE data', 
-	tools : "pan,wheel_zoom,box_zoom,reset,save", 
-	height : 300, 
-	width : 300, 
-	sizing_mode  : "stretch_both" ,
-	source_id  ,
-	plot_type  :  "circle"  ,
-	plot_id    :  "meh" ,
-	options : {
-	    radius: radii , 
-	    fill_color: {field : "colors" } , 
-	    fill_alpha: 0.4,
-	    line_color: null
-	} , 
-    } 
-
-    let data_registration_ops = {
-	'type' : 'register_data'  ,
-	id : source_id , 
-	data : data 
-    }
-
-    log("sending register")
-    i.client.send(JSON.stringify(data_registration_ops))
-
-    log("sending new plot")
-    i.client.send(JSON.stringify(plot_ops)) 
-
+/**
+ * Creates a bar chart from specified data. 
+ * Data is an array of arrays, where first array is ("x name", "y name"), 
+ * and then the following arrays are the data pairs (x,y). 
+ */
+export function bar_chart(data : any) {
+    let source_id = 'bar_chart' ;
+    api.bar_plot({
+	data, source_id 
+    })
+    
 } 
- 
+
+
+export var test_bar_data = [
+    ["Fruit" , "Value" ] ,
+    ["Apple" , 1 ] , 
+    ["Banana" , 2] ,
+    ["Pear" , 1 ] , 
+    ["Algo" , 2] , 
+    ["Bond" , 1 ] , 
+    ["Test" , 12] , 
+]
+
