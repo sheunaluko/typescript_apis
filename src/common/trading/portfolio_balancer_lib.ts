@@ -28,13 +28,6 @@ export type BalanceParams = {
     target_precision : number; 
     quote_asset : string,
     base_asset : string ,
-    /*    
-    symbol_generator : (a:string,b:string)=>string ,
-    get_quote_balance : (qa:string) => Promise<number>,
-    get_base_balance : (ba:string) => Promise<number>,
-    get_base_price : (ba:string,qa:string) => Promise<number> ,
-    do_market_trade : (trade_type : MarketTradeType, base_amt : number) => Promise<MarketResult> 
-    */
 } 
 
 
