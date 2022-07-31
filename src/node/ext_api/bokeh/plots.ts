@@ -20,7 +20,7 @@ export function time_series(x : any,y : any) {
     let plot_type =  "line"  ; 
     api.new_plot({
 	data, source_id, fields, title,  tools, height, width , sizing_mode, plot_type,
-	plot_id, plot_options : null , figure_options : null , 
+	plot_id, plot_options : null , figure_options : {x_axis_type : "datetime"} , 
     })
     
 } 

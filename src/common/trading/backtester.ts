@@ -69,6 +69,7 @@ export class BacktestBalancer extends pbl.PortfolioBalancer {
     initial_portfolio  : Portfolio ;
     balance_portfolio_series : Portfolio[] ;
     hodl_portfolio_series :    Portfolio[] ;     
+    ratio_series: number[] ;
     slippage : number ;
     fee : number ;
     transactions_costs : any ; 
@@ -95,7 +96,8 @@ export class BacktestBalancer extends pbl.PortfolioBalancer {
 	}
 	
 	this.balance_portfolio_series  = [] ;
-	this.hodl_portfolio_series  = [] ;	
+	this.hodl_portfolio_series  = [] ;
+	this.ratio_series = [] ; 
     }
 
     async get_quote_balance(qa:string)  {
@@ -200,7 +202,7 @@ export class BacktestBalancer extends pbl.PortfolioBalancer {
 	let { p,t } = this.data[this.current_index] ;
 	this.hodl_portfolio_series.push(this.get_portfolio_value_and_time(this.initial_portfolio, p,t)) 
 	this.balance_portfolio_series.push(this.get_portfolio_value_and_time(this.portfolio, p,t ))
-	
+	this.ratio_series.push(this.Params.target_ratio) ; 
     }
 
     get_portfolio_value_and_time(portfolio: Portfolio, p : number, t : string) {

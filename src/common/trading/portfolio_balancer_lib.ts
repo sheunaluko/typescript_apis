@@ -28,6 +28,8 @@ export type BalanceParams = {
     target_precision : number; 
     quote_asset : string,
     base_asset : string ,
+    adaptive? : boolean , 
+    alpha? : number , 
 } 
 
 
@@ -41,12 +43,20 @@ export abstract class PortfolioBalancer {
     Logger : any ;
     last_balance_data : any ;
     log_mode : string ; 
+    state : any ; 
 
     constructor(params : BalanceParams) {
 	this.Params = params ;
 	this.Logger = get_logger({id: params.logger_id}) ;
 	this.last_balance_data = {} ;
 	this.log_mode = "verbose" ; 
+	this.state = { 
+	    price_history : [] , 
+	    last_price : null , 
+	    r : params.target_ratio , 
+	} 
+	
+	this.Params.alpha = (this.Params.alpha || 0.01) ; 
     }
 
     /**
@@ -73,6 +83,23 @@ export abstract class PortfolioBalancer {
 	if (this.log_mode =="verbose") { 
 	    this.log(info) ;
 	}
+	
+	/* 
+	 Adaptive logic here...   
+	*/
+	if (this.Params.adaptive && this.state.last_price) { 
+	    let dp = base_price - this.state.last_price 
+
+	    let gate01 = (x:number)=> Math.max(Math.min(1,x),0)
+	    this.state.r = gate01(this.state.r - (this.Params.alpha as number) * dp 	    )
+	    this.Params.target_ratio = this.state.r  ; 
+	} 
+	
+	//update the last price 
+	this.state.last_price = base_price 
+	this.state.price_history.push(base_price)
+	    
+	// -- 
 	
 	if (target_achieved) {
 	    if (this.log_mode == "verbose") { 
