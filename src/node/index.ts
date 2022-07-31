@@ -6,6 +6,7 @@ import * as external_apis from "./ext_api/index"
 import * as cryptography from "./cryptography"
 import * as trading from "./trading/index" 
 import * as arpa from "./arpa/index"
+import * as csv from "./csv"
 
 export {
     http ,
@@ -15,5 +16,6 @@ export {
     cryptography,
     trading,
     utils,
-    arpa, 
+    arpa,
+    csv 
 } 

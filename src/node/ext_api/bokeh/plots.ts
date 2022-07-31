@@ -1,9 +1,7 @@
 import * as tsa from "../../../index"
-tsa.register_module(import.meta.url, 'plots') ;
-import  * as api from "./api" 
-
-let log = console.log
-
+import  * as api from "./api"
+import * as mm from "../../../common/module_manager" 
+mm.register(import.meta.url, 'plots') ;
 
 /**
  * Creates a time series plot given x values and y values 

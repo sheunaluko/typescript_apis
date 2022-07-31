@@ -28,6 +28,9 @@ export function to_plot_ops(series : any , _x : string, _y : string , plot_type 
     return plot_params 
 }
 
+/*
+  Takes a backetest that has been run  
+*/
 export function plot1(d : any ) {
     let ops1 = to_plot_ops(d.balance_portfolio_series, 't', 'value' , 'line' , {line_color : "blue"})
     let ops2 = to_plot_ops(d.hodl_portfolio_series, 't', 'value' , 'line' , {line_color : "red"})

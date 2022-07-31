@@ -1,5 +1,5 @@
 
-
+console.log("loading index") 
 import * as node from "./node"
 import * as common from "./common" 
 
@@ -8,13 +8,12 @@ export {
     common, 
 }
 
-
 /*
   Top level utility for registering modules, 
   Which allows for in-repl module reloading 
 */
 export function register_module(fpath: string, id : string) {
-    common.module_manager.register(fpath,id)
+    return common.module_manager.register(fpath,id)
 } 
 
 /*

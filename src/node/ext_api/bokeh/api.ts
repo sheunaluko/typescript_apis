@@ -28,12 +28,19 @@ export function get_interface() {
     let wss = new WebSocketServer({ port  });
     var client = null
 
-    var obj : any = { client , ws_port : port, wss } 
+    var client_resolver  : any = null; 
+    var client_connected = new Promise( (resolve,reject) => {
+	client_resolver = resolve ; 
+    })
+
+    var obj : any = { client , ws_port : port, wss , client_connected} 
 
     wss.on('connection', function connection(ws : any) {
 	log(`Client connected`) 
 	//assign the client 
-	obj.client = ws   ; 
+	obj.client = ws   ;
+	//resolve the promise
+	client_resolver(true) ; 
 	ws.on('message', function message(data : string) {
 	    // - ignore messages from the client -- this is one way communication 
 	});
