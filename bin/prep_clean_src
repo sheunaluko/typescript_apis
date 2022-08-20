@@ -1,3 +1,4 @@
 find src -name "*.js" -type f 
 find src -name "#*" -type f 
-find src -name "*~" -type f 
+find src -name "*~" -type f
+find src -name "*.d.ts" -type f 
