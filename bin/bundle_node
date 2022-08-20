@@ -1,0 +1,26 @@
+# -- clean
+
+mkdir -p builds/node/src/node;
+mkdir -p builds/node/src/common;
+
+rm -r builds/node/src/node;
+rm -r builds/node/src/common;
+
+mkdir -p builds/node/src/node;
+mkdir -p builds/node/src/common;
+
+# --- copy 
+
+cp -r src/node/* builds/node/src/node/
+cp -r src/common/* builds/node/src/common/
+
+# --- build
+
+cd builds/node
+tsc ./src/index.ts --esModuleInterop --declaration  --target es2015 --module commonjs --outDir lib
+cd ../../
+
+
+
+
+

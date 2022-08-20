@@ -1,4 +1,4 @@
-[
+var d = [
     {
         "constant": true,
         "inputs": [],
@@ -220,3 +220,5 @@
         "type": "event"
     }
 ]
+
+export default d; 

@@ -1,0 +1,5 @@
+{
+  "name": "tsa_web",
+  "version": "1.0.0",
+  "main": "web_bundle.js"
+}

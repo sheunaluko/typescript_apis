@@ -1,5 +1,3 @@
-
-console.log("loading index") 
 import * as node from "./node"
 import * as common from "./common" 
 
