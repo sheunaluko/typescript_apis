@@ -33,4 +33,4 @@ First clone this repository and then run `./bin/bundle_node`.
 Then, in your project directory simply run: 
 `npm install /path/to/typescript_apis/builds/node`
 
-
+> :warning: **Make sure you are using the most up to date versions of node and typescript** or else you may get errors with packaging the libraries or running the repl! 
