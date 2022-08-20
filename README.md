@@ -19,14 +19,18 @@ A documented and clean collection of typescript code for composability and re-us
 ### About 
 This repository includes libraries for cryptogrophy, functional programming, graphing, financial/cryptocurrency analysis, and much more!
 
-The libaries will eventually be uploaded to npm. For now, to use the packages first clone this repository and then run `./bin/bundle_{node/web}` depending on which package you want to build. 
+The libaries will eventually be uploaded to npm. For now, to use the packages do the following:
 
 #### Web library
 For import into react project or other website.
-In your project directory simply run `npm install /path/to/typescript_apis/builds/web`
+First clone this repository and then run `./bin/bundle_web`.
+Then, in your project directory simply run: 
+`npm install /path/to/typescript_apis/builds/web`
 
 #### Node library
-For import by node process. 
-In your project directory simply run `npm install /path/to/typescript_apis/builds/node`
+For import by node process.
+First clone this repository and then run `./bin/bundle_node`.
+Then, in your project directory simply run: 
+`npm install /path/to/typescript_apis/builds/node`
 
-More explanation to come... 
+
