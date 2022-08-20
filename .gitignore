@@ -11,3 +11,6 @@ local_data
 src/node/repl_dev.ts
 src/node/arpa/backtesting/dev.ts
 todo
+builds/node/lib
+builds/node/src/node
+builds/node/src/common
