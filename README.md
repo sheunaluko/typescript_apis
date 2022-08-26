@@ -1,4 +1,4 @@
-# Tidyscripts :broom: :lotus_position_man::skin-tone-4:
+# Tidyscripts :broom: 🧘🏾‍♂️
 A documented and clean collection of typescript code for composability and re-use :)
 
 
