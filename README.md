@@ -42,6 +42,6 @@ This is how I build the packages myself prior to distributing them on npm as tid
 ``` ./bin/sync COMMIT_MSG ``` 
 
 ## Contact
-Twitter - @shayaluko
-Instagram - @sheunaluko
-Linked In - /sheun-aluko
+Twitter - @shayaluko\
+Instagram - @sheunaluko\
+Linked In - /sheun-aluko\
