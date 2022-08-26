@@ -83,3 +83,57 @@ export function concat_accross_index( arrs : any[]) {
     }
     return result 
 } 
+
+
+/**
+ * Clone an object to produce an identical yet distinct reference and corresponding object
+ * Uses JSON.parse(JSON.stringify(o))
+ */
+export function clone( o : any ) {
+    return JSON.parse(JSON.stringify(o)) 
+} 
+
+/**
+ * Same as Array.push however clones the array first 
+ * @param arr - the array 
+ * @param o - object to add 
+ */
+export function im_push( arr : any[], o : any ) {
+    let new_a = clone(arr) as any[];
+    new_a.push(o);
+    return new_a ; 
+} 
+
+
+/**
+ * Removes a value from an array if '==' is true. 
+ * @param arr - the array 
+ * @param o - object to remove
+ */
+export function im_arr_rm( arr : any[], o : any ) {
+    let narr = clone(arr) ; 
+    return narr.filter( (x:any)=> !(x == o ) ) 
+} 
+
+
+
+/**
+ * Creates comparator function based on property value 
+ * From https://stackoverflow.com/questions/1129216/sort-array-of-objects-by-string-property-value
+ * Returns a comparator function for use in Array.sort 
+ * @param property - The prop to sort by 
+ */
+export function sort_by_prop(property : string) {
+    var sortOrder = 1;
+    if(property[0] === "-") {
+        sortOrder = -1;
+        property = property.substr(1);
+    }
+    return function (a:any,b:any) {
+        /* next line works with strings and numbers, 
+         * and you may want to customize it to your needs
+         */
+        var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+        return result * sortOrder;
+    }
+}    

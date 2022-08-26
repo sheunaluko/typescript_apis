@@ -1,0 +1,4 @@
+cd builds/web; 
+npm version patch ; 
+npm publish ; 
+cd ../.. 

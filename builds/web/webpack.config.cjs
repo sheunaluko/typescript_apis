@@ -18,7 +18,7 @@ module.exports = {
     outputModule: true,
   },
   output: {
-    library: 'tsa_web',
+    library: 'tidyscripts_web',
     libraryTarget: 'commonjs',
     path: path.resolve(__dirname),
     filename: 'web_bundle.js'

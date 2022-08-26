@@ -1,1 +1,2 @@
+rm builds/web/web_bundle*
 npx webpack --config builds/web/webpack.config.cjs
