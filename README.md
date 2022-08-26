@@ -1,4 +1,4 @@
-# Typescript APIs
+# Tidyscripts :broom:
 A documented and clean collection of typescript code for composability and re-use :)
 
 
@@ -44,4 +44,4 @@ This is how I build the packages myself prior to distributing them on npm as tid
 ## Contact
 Twitter - @shayaluko\
 Instagram - @sheunaluko\
-Linked In - /sheun-aluko
+Linked In - sheun-aluko
