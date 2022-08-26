@@ -44,4 +44,4 @@ This is how I build the packages myself prior to distributing them on npm as tid
 ## Contact
 Twitter - @shayaluko\
 Instagram - @sheunaluko\
-Linked In - /sheun-aluko\
+Linked In - /sheun-aluko
