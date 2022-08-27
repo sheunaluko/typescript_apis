@@ -1,4 +1,4 @@
-# Tidyscripts :broom: 🧘🏾‍♂️
+# Tidyscripts  🧘🏾‍♂️  :broom: 
 A documented and clean collection of typescript code for composability and re-use. Created and maintained by Sheun Aluko, MD-MS. 
 
 
